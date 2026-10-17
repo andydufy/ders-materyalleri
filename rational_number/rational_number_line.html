@@ -24,43 +24,57 @@
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
         }
 
+        /* EKRANA SIĞAN DÜZEN: geniş ekranda (tahta, bilgisayar) sayfa kaydırılmaz;
+           başlık ve giriş satırı kompakt, sayı doğruları kalan yüksekliği paylaşır.
+           Telefonda (dar ekran) sayfa normal kaydırılır. */
+        html, body { height: 100%; }
+
         body {
             background-color: var(--bg);
             color: var(--text);
-            padding: 20px;
-            max-width: 1200px;
+            padding: clamp(8px, 1.4vmin, 16px);
+            max-width: 1600px;
             margin: 0 auto;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            gap: clamp(6px, 1.2vmin, 12px);
+            overflow: hidden;
         }
 
         header {
-            text-align: center;
-            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
             background: linear-gradient(135deg, #1e3a8a, #2563eb);
             color: white;
-            padding: 25px;
-            border-radius: 16px;
+            padding: clamp(8px, 1.4vmin, 14px) clamp(12px, 2vmin, 20px);
+            border-radius: 14px;
             box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            flex-shrink: 0;
         }
 
         header h1 {
-            font-size: 1.8rem;
-            margin-bottom: 8px;
+            font-size: clamp(1.05rem, 2.6vmin, 1.6rem);
+            line-height: 1.2;
         }
 
         header p {
             opacity: 0.9;
-            font-size: 1rem;
+            font-size: clamp(0.8rem, 1.8vmin, 0.95rem);
+            margin-top: 2px;
         }
 
         .nav-tabs {
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
         }
 
         .tab-btn {
-            padding: 12px 24px;
+            padding: 10px 18px;
             border: none;
             background-color: var(--card);
             color: var(--text);
@@ -80,36 +94,42 @@
 
         .content-card {
             background: var(--card);
-            border-radius: 16px;
-            padding: 25px;
+            border-radius: 14px;
+            padding: clamp(10px, 1.8vmin, 18px);
             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-            margin-bottom: 25px;
             border: 1px solid var(--border);
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            gap: clamp(6px, 1.2vmin, 10px);
+            overflow: auto;
         }
 
+        /* Öğretmen notu yer kaplamasın: tek satırlık açılır not. */
         .teacher-note {
             background-color: #eff6ff;
             border-left: 5px solid var(--primary);
-            padding: 15px;
+            padding: 6px 12px;
             border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 0.95rem;
-            display: flex;
-            align-items: center;
-            gap: 12px;
+            font-size: 0.9rem;
+            flex-shrink: 0;
         }
+        .teacher-note summary { cursor: pointer; font-weight: 600; }
+        .teacher-note p { margin-top: 4px; }
 
         .fraction-input-group {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: clamp(8px, 1.6vmin, 15px);
             justify-content: center;
-            margin-bottom: 25px;
             background: #f1f5f9;
-            padding: 15px;
+            padding: clamp(6px, 1.2vmin, 12px);
             border-radius: 12px;
             flex-wrap: wrap;
+            flex-shrink: 0;
         }
+        .fraction-input-group > div { display: flex; align-items: center; gap: 8px; }
 
         .fraction-box {
             display: inline-flex;
@@ -121,7 +141,7 @@
 
         .fraction-box input {
             width: 50px;
-            height: 40px;
+            height: clamp(30px, 4.6vmin, 40px);
             text-align: center;
             font-size: 1.1rem;
             border: 2px solid var(--border);
@@ -159,8 +179,35 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
+            gap: 8px 16px;
+            flex-wrap: wrap;
+            flex-shrink: 0;
         }
+
+        .step-subtext {
+            color: #475569;
+            font-size: clamp(0.85rem, 1.8vmin, 0.95rem);
+            flex-shrink: 0;
+        }
+
+        /* Sayı doğrusu alanı kalan yüksekliği doldurur; iki doğru eşit paylaşır. */
+        .lines-area {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            gap: clamp(6px, 1.2vmin, 10px);
+        }
+
+        .bottom-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px 16px;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+        }
+        .bottom-bar .feedback-msg { margin-top: 0; flex: 1 1 320px; }
 
         .zoom-controls {
             display: flex;
@@ -184,9 +231,14 @@
 
         /* SONSUZ SAYI DOĞRUSU TASARIMI (Sadece Çizgi ve Tam Sayılar) */
         .infinite-line-viewport {
+            /* Eksen yüksekliğin %62'sinde; kutular eksenin üstünde, sayılar altında. */
+            --eksen: 58%;
+            /* Doğrunun içindeki her ölçü bu yazı boyutuna (em) bağlı: büyük tahtada büyür. */
+            font-size: clamp(14px, 1.9vmin, 26px);
             position: relative;
             width: 100%;
-            height: 220px;
+            flex: 1;
+            min-height: 10.5em;
             background: #fafafa;
             border: 2px solid var(--border);
             border-radius: 12px;
@@ -201,7 +253,7 @@
 
         .axis-line {
             position: absolute;
-            top: 110px;
+            top: calc(var(--eksen) - 2px);
             left: 0;
             right: 0;
             height: 4px;
@@ -221,30 +273,30 @@
         .tick {
             position: absolute;
             width: 2px;
-            height: 24px;
+            height: 1.7em;
             background-color: var(--text);
-            top: 100px;
+            top: calc(var(--eksen) - 0.85em);
             transform: translateX(-50%);
         }
 
         .tick.sub-tick {
-            height: 14px;
-            top: 105px;
+            height: 1em;
+            top: calc(var(--eksen) - 0.5em);
             background-color: #64748b;
         }
 
         .tick-label-bottom {
             position: absolute;
-            top: 132px;
+            top: calc(var(--eksen) + 1.1em);
             transform: translateX(-50%);
             font-weight: bold;
-            font-size: 1.15rem;
+            font-size: 1.15em;
             color: #0f172a;
         }
 
         .tick-label-top {
             position: absolute;
-            top: 35px;
+            top: calc(var(--eksen) - 5.6em);
             transform: translateX(-50%);
         }
 
@@ -252,14 +304,14 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            width: 45px;
+            width: 3em;
         }
 
         .input-fraction input {
-            width: 42px;
-            height: 32px;
+            width: 2.7em;
+            height: 2.1em;
             text-align: center;
-            font-size: 0.95rem;
+            font-size: 1em;
             border: 2px solid var(--primary);
             border-radius: 4px;
             font-weight: bold;
@@ -268,14 +320,14 @@
 
         .input-fraction.sub-fraction input {
             border-color: #94a3b8;
-            font-size: 0.85rem;
-            width: 38px;
-            height: 28px;
+            font-size: 0.9em;
+            width: 2.6em;
+            height: 2em;
         }
 
         .target-pin {
             position: absolute;
-            top: 25px;
+            top: calc(var(--eksen) - 6.6em);
             transform: translateX(-50%);
             display: flex;
             flex-direction: column;
@@ -287,10 +339,10 @@
         .target-pin .pin-head {
             background-color: var(--danger);
             color: white;
-            padding: 4px 10px;
+            padding: 0.25em 0.6em;
             border-radius: 6px;
             font-weight: bold;
-            font-size: 1rem;
+            font-size: 1em;
             box-shadow: 0 4px 6px rgba(0,0,0,0.15);
             animation: bounce 0.6s infinite alternate;
         }
@@ -337,7 +389,7 @@
 
         .comp-select {
             width: 60px;
-            height: 50px;
+            height: clamp(40px, 6vmin, 50px);
             font-size: 1.8rem;
             font-weight: bold;
             text-align: center;
@@ -348,26 +400,58 @@
             cursor: pointer;
         }
 
-        .hidden { display: none; }
+        /* İki doğru: her biri kendi renginde ve sol üstte adıyla — ikincisi gözden kaçmasın. */
+        .line-tag {
+            position: absolute;
+            bottom: 8px;
+            left: 10px;
+            z-index: 11;
+            background: var(--primary);
+            color: white;
+            font-weight: 700;
+            font-size: 0.85em;
+            padding: 0.2em 0.7em;
+            border-radius: 999px;
+            pointer-events: none;
+        }
+        #viewport-2a { border-color: var(--primary); }
+        #viewport-2b { border-color: var(--accent); }
+        #viewport-2b .line-tag { background: var(--accent); }
+
+        .hidden { display: none !important; }
+
+        /* Telefon / dar ekran: sayfa kaydırılır, doğrular sabit yükseklikte. */
+        @media (max-width: 760px), (max-height: 520px) {
+            body { height: auto; overflow: visible; }
+            .content-card { flex: none; overflow: visible; }
+            .lines-area { flex: none; }
+            /* iPhone'da 16 px altındaki kutuya dokununca sayfa yakınlaşır; en az 16 px. */
+            .infinite-line-viewport { flex: none; height: 12em; font-size: 16px; }
+            .input-fraction.sub-fraction input { font-size: 1em; }
+            .fraction-box input { font-size: 16px; }
+            header { justify-content: center; text-align: center; }
+        }
     </style>
 </head>
 <body>
 
     <header>
-        <h1>📐 Kesirleri Sayı Doğrusunda Gösterme ve Karşılaştırma</h1>
-        <p>Sayıları girin, etkinliği başlatın ve sayı doğrularını adım adım doldurun!</p>
+        <div>
+            <h1>📐 Kesirleri Sayı Doğrusunda Gösterme ve Karşılaştırma</h1>
+            <p>Sayıları girin, etkinliği başlatın ve sayı doğrularını adım adım doldurun!</p>
+        </div>
+        <div class="nav-tabs">
+            <button class="tab-btn active" onclick="switchTab('single')">1. Kesri Sayı Doğrusunda Göster</button>
+            <button class="tab-btn" onclick="switchTab('compare')">2. İki Kesri Karşılaştır</button>
+        </div>
     </header>
-
-    <div class="nav-tabs">
-        <button class="tab-btn active" onclick="switchTab('single')">1. Kesri Sayı Doğrusunda Göster</button>
-        <button class="tab-btn" onclick="switchTab('compare')">2. İki Kesri Karşılaştır</button>
-    </div>
 
     <!-- MODÜL 1: TEK KESİR GÖSTERME -->
     <div id="single-module" class="content-card">
-        <div class="teacher-note">
-            <span>👨‍🏫 <strong>Öğretmen Notu:</strong> Kesri yazıp 'Etkinliği Başlat' butonuna bastığınızda tam sayı kesir dönüştürme kutuları aktifleşecektir.</span>
-        </div>
+        <details class="teacher-note">
+            <summary>👨‍🏫 Öğretmen Notu</summary>
+            <p>Kesri yazıp 'Etkinliği Başlat' butonuna bastığınızda tam sayı kesir dönüştürme kutuları aktifleşecektir.</p>
+        </details>
 
         <div class="fraction-input-group">
             <label><strong>Gösterilecek Kesir:</strong></label>
@@ -379,7 +463,6 @@
             <button class="btn" onclick="initSingleLine()">Etkinliği Başlat</button>
         </div>
 
-        <div>
             <div class="controls-bar">
                 <div class="step-title" id="step-instruction">Sayı Doğrusu</div>
                 <div class="zoom-controls">
@@ -388,27 +471,29 @@
                     <button class="zoom-btn" onclick="resetView(1)">🎯 Sıfırla</button>
                 </div>
             </div>
-            <p id="step-subtext" style="margin-bottom: 15px; color: #64748b; font-size: 0.95rem;">
+            <p id="step-subtext" class="step-subtext">
                 Kesri yazdıktan sonra yukarıdaki 'Etkinliği Başlat' butonuna basınız.
             </p>
 
-            <div class="infinite-line-viewport" id="viewport-1">
-                <div class="axis-line"></div>
-                <div class="line-track" id="track-1"></div>
+            <div class="lines-area">
+                <div class="infinite-line-viewport" id="viewport-1">
+                    <div class="axis-line"></div>
+                    <div class="line-track" id="track-1"></div>
+                </div>
             </div>
 
-            <div style="text-align: center; margin-top: 15px;">
+            <div class="bottom-bar">
                 <button class="btn btn-success" id="action-btn" style="display:none;" onclick="handleStepAction()">1. Adımı Kontrol Et</button>
+                <div id="single-feedback" class="feedback-msg"></div>
             </div>
-            <div id="single-feedback" class="feedback-msg"></div>
-        </div>
     </div>
 
     <!-- MODÜL 2: İKİ KESRİ KARŞILAŞTIRMA -->
     <div id="compare-module" class="content-card hidden">
-        <div class="teacher-note">
-            <span>👨‍🏫 <strong>Öğretmen Notu:</strong> İki kesri de yazıp 'Karşılaştırmayı Başlat' butonuna bastığınızda kutular açılır.</span>
-        </div>
+        <details class="teacher-note">
+            <summary>👨‍🏫 Öğretmen Notu</summary>
+            <p>İki kesri de yazıp 'Karşılaştırmayı Başlat' butonuna bastığınızda kutular açılır.</p>
+        </details>
 
         <div class="fraction-input-group">
             <div>
@@ -447,31 +532,27 @@
                 <button class="zoom-btn" onclick="resetView(2)">🎯 Sıfırla</button>
             </div>
         </div>
-        <p id="comp-step-subtext" style="margin-bottom: 15px; color: #64748b; font-size: 0.95rem;">
+        <p id="comp-step-subtext" class="step-subtext">
             Karşılaştırmak istediğiniz kesirleri girip 'Karşılaştırmayı Başlat' butonuna basınız.
         </p>
 
-        <div id="compare-lines-wrapper">
-            <h4 style="color: var(--primary); margin-bottom: 5px;">1. Kesir Sayı Doğrusu</h4>
+        <div id="compare-lines-wrapper" class="lines-area">
             <div class="infinite-line-viewport" id="viewport-2a">
+                <span class="line-tag" id="tag-2a">1. kesir</span>
                 <div class="axis-line"></div>
                 <div class="line-track" id="track-2a"></div>
             </div>
-
-            <hr style="border: 0; border-top: 1px dashed var(--border); margin: 15px 0;">
-
-            <h4 style="color: var(--primary); margin-bottom: 5px;">2. Kesir Sayı Doğrusu</h4>
             <div class="infinite-line-viewport" id="viewport-2b">
+                <span class="line-tag" id="tag-2b">2. kesir</span>
                 <div class="axis-line"></div>
                 <div class="line-track" id="track-2b"></div>
             </div>
         </div>
 
-        <div style="text-align: center; margin-top: 15px;">
+        <div class="bottom-bar">
             <button class="btn btn-success" id="comp-action-btn" style="display:none;" onclick="handleCompareStepAction()">1. Adımı Kontrol Et</button>
+            <div id="compare-feedback" class="feedback-msg"></div>
         </div>
-
-        <div id="compare-feedback" class="feedback-msg"></div>
     </div>
 
     <script>
@@ -485,6 +566,13 @@
         const state1 = { unitPixels: 200, offsetX: 0 };
         const state2 = { unitPixels: 200, offsetX: 0 };
 
+        // alert() Kalemdar'ın güvenli çerçevesinde açılmaz; uyarı sayfadaki mesaj alanına yazılır.
+        function uyar(alanId, metin) {
+            const fb = document.getElementById(alanId);
+            fb.className = "feedback-msg wrong";
+            fb.innerText = metin;
+        }
+
         function switchTab(tab) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             if(tab === 'single') {
@@ -496,6 +584,8 @@
                 document.getElementById('single-module').classList.add('hidden');
                 document.getElementById('compare-module').classList.remove('hidden');
             }
+            // Gizliyken genişlik 0 ölçülür; sekme açılınca doğrular yeniden çizilir.
+            requestAnimationFrame(() => { renderSingleTrack(); renderCompareTracks(); });
         }
 
         function setupPanZoom(viewportId, stateObj, renderCallback) {
@@ -535,12 +625,18 @@
             }
         }
 
+        // Varsayılan birim aralığı ekran genişliğine göre: geniş tahtada bir birim daha geniş.
+        function varsayilanBirim(viewportId) {
+            const w = document.getElementById(viewportId).offsetWidth || 1000;
+            return Math.max(160, Math.min(340, Math.round(w / 6)));
+        }
+
         function resetView(moduleNum) {
             if(moduleNum === 1) {
-                state1.unitPixels = 200;
+                state1.unitPixels = varsayilanBirim('viewport-1');
                 centerViewOnTarget(1, currentTarget.num / currentTarget.den);
             } else {
-                state2.unitPixels = 200;
+                state2.unitPixels = varsayilanBirim('viewport-2a');
                 const val1 = compTarget1.num / compTarget1.den;
                 const val2 = compTarget2.num / compTarget2.den;
                 const midVal = (val1 + val2) / 2;
@@ -562,7 +658,7 @@
         function initSingleLine() {
             const num = parseInt(document.getElementById('target-num').value);
             const den = parseInt(document.getElementById('target-den').value);
-            if(!den || den <= 0) { alert("Payda 0'dan büyük olmalıdır!"); return; }
+            if(!den || den <= 0) { uyar('single-feedback', "Payda 0'dan büyük olmalıdır!"); return; }
 
             currentTarget = { num, den };
             currentStep = 1; // 1. Adımı Aktifleştir
@@ -765,11 +861,13 @@
             const n2 = parseInt(document.getElementById('comp-num2').value);
             const d2 = parseInt(document.getElementById('comp-den2').value);
 
-            if(!d1 || !d2 || d1 <= 0 || d2 <= 0) { alert("Paydalar 0'dan büyük olmalıdır!"); return; }
+            if(!d1 || !d2 || d1 <= 0 || d2 <= 0) { uyar('compare-feedback', "Paydalar 0'dan büyük olmalıdır!"); return; }
 
             compTarget1 = { num: n1, den: d1 };
             compTarget2 = { num: n2, den: d2 };
             currentCompStep = 1; // 1. Adımı Aktifleştir
+            document.getElementById('tag-2a').innerText = `1. kesir: ${n1}/${d1}`;
+            document.getElementById('tag-2b').innerText = `2. kesir: ${n2}/${d2}`;
 
             document.getElementById('comp-user-symbol').value = "?";
             document.getElementById('comp-step-instruction').innerText = "Adım 1: Tam Sayıları Kesirlere Dönüştürün";
@@ -1001,6 +1099,8 @@
         }
 
         window.onload = () => {
+            state1.unitPixels = varsayilanBirim('viewport-1');
+            state2.unitPixels = state1.unitPixels;
             setupPanZoom('viewport-1', state1, renderSingleTrack);
             setupPanZoom('viewport-2a', state2, renderCompareTracks);
             setupPanZoom('viewport-2b', state2, renderCompareTracks);
@@ -1008,6 +1108,13 @@
             // Sayfa ilk yüklendiğinde yalnızca düz çizgi ve tam sayıları çizdir
             renderSingleTrack();
             renderCompareTracks();
+
+            // Ekran boyutu değişince (tam ekran, döndürme) doğrular yeniden çizilir.
+            let bekleyen = 0;
+            window.addEventListener('resize', () => {
+                cancelAnimationFrame(bekleyen);
+                bekleyen = requestAnimationFrame(() => { renderSingleTrack(); renderCompareTracks(); });
+            });
         };
     </script>
 </body>
