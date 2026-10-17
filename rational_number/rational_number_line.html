@@ -67,29 +67,72 @@
             margin-top: 2px;
         }
 
+        /* Etkinlik sekmeleri: başlığın altında, tam genişlikte; ikinci etkinlik gözden kaçmasın. */
         .nav-tabs {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: clamp(6px, 1.2vmin, 12px);
+            flex-shrink: 0;
         }
 
         .tab-btn {
-            padding: 10px 18px;
-            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6em;
+            padding: clamp(8px, 1.4vmin, 12px) 14px;
+            font-size: clamp(0.95rem, 2.1vmin, 1.2rem);
+            font-weight: 700;
+            text-align: left;
             background-color: var(--card);
-            color: var(--text);
-            font-weight: 600;
-            border-radius: 10px;
+            color: var(--primary-dark);
+            border: 2px solid var(--primary);
+            border-radius: 12px;
             cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            border: 2px solid transparent;
+            transition: background-color 0.2s, color 0.2s, box-shadow 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.06);
         }
+
+        .tab-btn:hover { background-color: #eff6ff; }
 
         .tab-btn.active {
             background-color: var(--primary);
             color: white;
             border-color: var(--primary-dark);
+            box-shadow: 0 6px 12px -4px rgba(37, 99, 235, 0.5);
+        }
+
+        .tab-no {
+            flex-shrink: 0;
+            display: inline-grid;
+            place-items: center;
+            width: 1.8em;
+            height: 1.8em;
+            border-radius: 50%;
+            background-color: var(--primary);
+            color: white;
+            font-weight: 800;
+        }
+
+        .tab-btn.active .tab-no {
+            background-color: white;
+            color: var(--primary);
+        }
+
+        /* Birinci etkinlik bitince ikinciye çağıran düğme. */
+        .btn-sonraki {
+            font-size: 1.05rem;
+            padding: 12px 22px;
+            animation: dikkat 1.2s ease-in-out 3;
+        }
+
+        @keyframes dikkat {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.06); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .btn-sonraki { animation: none; }
         }
 
         .content-card {
@@ -450,11 +493,12 @@
             <h1>📐 Kesirleri Sayı Doğrusunda Gösterme ve Karşılaştırma</h1>
             <p>Sayıları girin, etkinliği başlatın ve sayı doğrularını adım adım doldurun!</p>
         </div>
-        <div class="nav-tabs">
-            <button class="tab-btn active" onclick="switchTab('single')">1. Kesri Sayı Doğrusunda Göster</button>
-            <button class="tab-btn" onclick="switchTab('compare')">2. İki Kesri Karşılaştır</button>
-        </div>
     </header>
+
+    <nav class="nav-tabs" aria-label="Etkinlikler">
+        <button class="tab-btn active" onclick="switchTab('single')"><span class="tab-no">1</span>Kesri Sayı Doğrusunda Göster</button>
+        <button class="tab-btn" onclick="switchTab('compare')"><span class="tab-no">2</span>İki Kesri Karşılaştır</button>
+    </nav>
 
     <!-- MODÜL 1: TEK KESİR GÖSTERME -->
     <div id="single-module" class="content-card">
@@ -494,6 +538,7 @@
 
             <div class="bottom-bar">
                 <button class="btn btn-success" id="action-btn" style="display:none;" onclick="handleStepAction()">1. Adımı Kontrol Et</button>
+                <button class="btn btn-sonraki" id="sonraki-btn" style="display:none;" onclick="switchTab('compare')">Sıradaki etkinlik: İki Kesri Karşılaştır →</button>
                 <div id="single-feedback" class="feedback-msg"></div>
             </div>
     </div>
@@ -759,6 +804,7 @@
             const btn = document.getElementById('action-btn');
             btn.innerText = "1. Adımı Kontrol Et";
             btn.style.display = "inline-block";
+            document.getElementById('sonraki-btn').style.display = "none";
 
             centerViewOnTarget(1, num / den);
             document.getElementById('single-feedback').style.display = 'none';
@@ -892,6 +938,7 @@
                 currentStep = 3;
                 havaiFisek();
                 document.getElementById('action-btn').style.display = "none";
+                document.getElementById('sonraki-btn').style.display = "inline-block";
                 document.getElementById('step-instruction').innerText = "Adım 3: Aranan Kesrin Bulunması ve İşaretlenmesi";
                 document.getElementById('step-subtext').innerText = "Kesirler sırayla dizildi ve hedef kesrimiz sayı doğrusunda bulundu!";
             } else if (d.hepsiDogru) {
