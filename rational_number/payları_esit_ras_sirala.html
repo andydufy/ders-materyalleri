@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payları Eşit Rasyonel Sayıları Sıralama</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background-color: #f0f2f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .card {
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+      max-width: 500px;
+      width: 100%;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      color: #1a202c;
+      margin-top: 0;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    p.subtitle {
+      font-size: 0.9rem;
+      color: #718096;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .questions-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .question-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 12px 16px;
+      border-radius: 12px;
+    }
+
+    .fraction {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      font-weight: 600;
+      font-size: 1.1rem;
+      color: #2d3748;
+      min-width: 45px;
+    }
+
+    .fraction .numerator {
+      border-bottom: 2px solid #2d3748;
+      padding: 0 4px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .fraction .denominator {
+      padding: 0 4px;
+      width: 100%;
+      text-align: center;
+    }
+
+    select.symbol-select {
+      font-size: 1.2rem;
+      font-weight: bold;
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 2px solid #cbd5e0;
+      background-color: #ffffff;
+      color: #2d3748;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    select.symbol-select:focus {
+      border-color: #3182ce;
+    }
+
+    .status-icon {
+      font-size: 1.2rem;
+      width: 24px;
+      text-align: center;
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    button {
+      flex: 1;
+      padding: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-check {
+      background-color: #2b6cb0;
+      color: white;
+    }
+
+    .btn-check:hover {
+      background-color: #2c5282;
+    }
+
+    .btn-reset {
+      background-color: #edf2f7;
+      color: #4a5568;
+    }
+
+    .btn-reset:hover {
+      background-color: #e2e8f0;
+    }
+
+    .result-msg {
+      text-align: center;
+      margin-top: 16px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      min-height: 24px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h1>Payları Eşit Rasyonel Sayılar</h1>
+    <p class="subtitle">Payları eşit olan kesirlerin arasına uygun sembolü (<b>&lt;</b>, <b>&gt;</b>, <b>=</b>) seçiniz.</p>
+
+    <div id="questions" class="questions-container"></div>
+
+    <div class="result-msg" id="resultMessage"></div>
+
+    <div class="controls">
+      <button class="btn-check" onclick="checkAnswers()">Kontrol Et</button>
+      <button class="btn-reset" onclick="generateQuestions()">Yeniden Üret 🔄</button>
+    </div>
+  </div>
+
+  <script>
+    const QUESTION_COUNT = 5;
+    let questionsData = [];
+
+    function getRandomNonZero(min, max) {
+      let num = 0;
+      while (num === 0) {
+        num = Math.floor(Math.random() * (max - min + 1)) + min;
+      }
+      return num;
+    }
+
+    function generateQuestions() {
+      const container = document.getElementById('questions');
+      const resultMsg = document.getElementById('resultMessage');
+      container.innerHTML = '';
+      resultMsg.innerHTML = '';
+      questionsData = [];
+
+      for (let i = 0; i < QUESTION_COUNT; i++) {
+        // Pay eşit tutulur, pozitif veya negatif olabilir
+        const numerator = getRandomNonZero(-12, 12);
+        
+        // Paydalar her zaman pozitif seçilir (2-15 arası)
+        const den1 = Math.floor(Math.random() * 14) + 2;
+        const den2 = Math.floor(Math.random() * 14) + 2;
+
+        // Gerçek sayısal değerlerin karşılaştırılması
+        const val1 = numerator / den1;
+        const val2 = numerator / den2;
+
+        let correctSymbol = '=';
+        if (val1 > val2) correctSymbol = '>';
+        else if (val1 < val2) correctSymbol = '<';
+
+        questionsData.push({ numerator, den1, den2, correctSymbol });
+
+        // HTML yapısı
+        const row = document.createElement('div');
+        row.className = 'question-row';
+        row.innerHTML = `
+          <div class="fraction">
+            <span class="numerator">${numerator}</span>
+            <span class="denominator">${den1}</span>
+          </div>
+
+          <select class="symbol-select" id="select-${i}">
+            <option value="">?</option>
+            <option value="<">&lt;</option>
+            <option value=">">&gt;</option>
+            <option value="=">=</option>
+          </select>
+
+          <div class="fraction">
+            <span class="numerator">${numerator}</span>
+            <span class="denominator">${den2}</span>
+          </div>
+
+          <span class="status-icon" id="status-${i}"></span>
+        `;
+        container.appendChild(row);
+      }
+    }
+
+    function checkAnswers() {
+      let correctCount = 0;
+      let allAnswered = true;
+
+      questionsData.forEach((q, index) => {
+        const select = document.getElementById(`select-${index}`);
+        const status = document.getElementById(`status-${index}`);
+        const userValue = select.value;
+
+        if (!userValue) {
+          allAnswered = false;
+          status.innerHTML = '';
+          return;
+        }
+
+        if (userValue === q.correctSymbol) {
+          status.innerHTML = '✅';
+          correctCount++;
+        } else {
+          status.innerHTML = '❌';
+        }
+      });
+
+      const resultMsg = document.getElementById('resultMessage');
+      if (!allAnswered) {
+        resultMsg.style.color = '#e53e3e';
+        resultMsg.textContent = 'Lütfen tüm soruları yanıtlayınız!';
+      } else {
+        resultMsg.style.color = correctCount === QUESTION_COUNT ? '#38a169' : '#d69e2e';
+        resultMsg.textContent = `Tebrikler! ${QUESTION_COUNT} sorudan ${correctCount} tanesini doğru bildiniz.`;
+      }
+    }
+
+    window.onload = generateQuestions;
+  </script>
+
+</body>
+</html>
