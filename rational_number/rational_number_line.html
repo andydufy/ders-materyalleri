@@ -420,6 +420,16 @@
 
         .hidden { display: none !important; }
 
+        /* Kutlama: havai fişek katmanı sayfanın üstündedir ama tıklamayı engellemez. */
+        #havai-fisek {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+
         /* Telefon / dar ekran: sayfa kaydırılır, doğrular sabit yükseklikte. */
         @media (max-width: 760px), (max-height: 520px) {
             body { height: auto; overflow: visible; }
@@ -554,6 +564,8 @@
             <div id="compare-feedback" class="feedback-msg"></div>
         </div>
     </div>
+
+    <canvas id="havai-fisek" hidden></canvas>
 
     <script>
         let currentTarget = { num: 3, den: 4 };
@@ -878,6 +890,7 @@
                 fb.innerText = `Mükemmel! Açtığınız aralıklardaki kesirleri eksiksiz doldurdunuz. Aradığımız ${currentTarget.num}/${currentTarget.den} kesri aşağıda işaretlendi!`;
 
                 currentStep = 3;
+                havaiFisek();
                 document.getElementById('action-btn').style.display = "none";
                 document.getElementById('step-instruction').innerText = "Adım 3: Aranan Kesrin Bulunması ve İşaretlenmesi";
                 document.getElementById('step-subtext').innerText = "Kesirler sırayla dizildi ve hedef kesrimiz sayı doğrusunda bulundu!";
@@ -1124,10 +1137,106 @@
                     ? `${compTarget1.num}/${compTarget1.den} kesri sayı doğrusunda daha solda olduğu için KÜÇÜKTÜR.` 
                     : "İki kesir sayı doğrusunda tam aynı hizada olduğu için EŞİTTİR.";
                 fb.innerText = `🎉 Mükemmel! Seçiminiz Doğru. ${textDetail}`;
+                havaiFisek();
             } else {
                 fb.className = "feedback-msg wrong";
                 fb.innerText = `İncelemeni tekrar yap! Sayı doğrusunda daha sağda olan kesir daha büyüktür. Doğru sembolü tekrar seçmeyi dene.`;
             }
+        }
+
+        // --- KUTLAMA: havai fişek ---
+        // Kütüphanesiz yazıldı: Kalemdar'ın güvenli çerçevesi dış kaynak yüklemez.
+        let kutlamaBitis = 0;
+
+        function havaiFisek(sure = 3500) {
+            const azHareket = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (azHareket) sure = 1200;
+            const yeniBitis = performance.now() + sure;
+            // Kutlama sürerken yeniden tetiklenirse yalnız süresi uzar.
+            if (kutlamaBitis > performance.now()) { kutlamaBitis = Math.max(kutlamaBitis, yeniBitis); return; }
+            kutlamaBitis = yeniBitis;
+
+            const tuval = document.getElementById('havai-fisek');
+            const ctx = tuval.getContext('2d');
+            const oran = window.devicePixelRatio || 1;
+            const w = window.innerWidth, h = window.innerHeight;
+            tuval.width = w * oran;
+            tuval.height = h * oran;
+            ctx.setTransform(oran, 0, 0, oran, 0, 0);
+            tuval.hidden = false;
+
+            const renkler = ['#f43f5e', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7', '#facc15', '#06b6d4'];
+            const yerCekimi = 0.15;
+            const roketler = [];
+            const kivilcimlar = [];
+            let sonAtis = 0;
+
+            function roketAt() {
+                const hedefY = h * (0.12 + Math.random() * 0.33);
+                roketler.push({
+                    x: w * (0.12 + Math.random() * 0.76),
+                    y: h,
+                    vx: (Math.random() - 0.5) * 2,
+                    vy: -Math.sqrt(2 * yerCekimi * (h - hedefY)),
+                    renk: renkler[Math.floor(Math.random() * renkler.length)],
+                });
+            }
+
+            function patlat(r) {
+                const adet = azHareket ? 30 : 70;
+                for (let i = 0; i < adet; i++) {
+                    const aci = Math.random() * Math.PI * 2;
+                    const hiz = 1 + Math.random() * 4.5;
+                    const omur = 55 + Math.random() * 35;
+                    kivilcimlar.push({
+                        x: r.x, y: r.y,
+                        vx: Math.cos(aci) * hiz, vy: Math.sin(aci) * hiz,
+                        omur, kalan: omur,
+                        renk: Math.random() < 0.25 ? '#ffffff' : r.renk,
+                    });
+                }
+            }
+
+            function kare(simdi) {
+                // Önceki kareyi silmek yerine soldur: kıvılcımlar iz bırakır.
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+                ctx.fillRect(0, 0, w, h);
+                ctx.globalCompositeOperation = 'source-over';
+
+                if (simdi < kutlamaBitis && simdi - sonAtis > (azHareket ? 600 : 280)) {
+                    roketAt();
+                    sonAtis = simdi;
+                }
+
+                for (let i = roketler.length - 1; i >= 0; i--) {
+                    const r = roketler[i];
+                    r.x += r.vx; r.y += r.vy; r.vy += yerCekimi;
+                    ctx.fillStyle = r.renk;
+                    ctx.beginPath(); ctx.arc(r.x, r.y, 2.5, 0, Math.PI * 2); ctx.fill();
+                    if (r.vy >= 0) { patlat(r); roketler.splice(i, 1); }
+                }
+
+                for (let i = kivilcimlar.length - 1; i >= 0; i--) {
+                    const k = kivilcimlar[i];
+                    k.vx *= 0.97; k.vy = k.vy * 0.97 + 0.06;
+                    k.x += k.vx; k.y += k.vy;
+                    k.kalan--;
+                    if (k.kalan <= 0) { kivilcimlar.splice(i, 1); continue; }
+                    ctx.globalAlpha = k.kalan / k.omur;
+                    ctx.fillStyle = k.renk;
+                    ctx.beginPath(); ctx.arc(k.x, k.y, 2.2, 0, Math.PI * 2); ctx.fill();
+                }
+                ctx.globalAlpha = 1;
+
+                if (simdi < kutlamaBitis || roketler.length || kivilcimlar.length) {
+                    requestAnimationFrame(kare);
+                } else {
+                    ctx.clearRect(0, 0, w, h);
+                    tuval.hidden = true;
+                }
+            }
+            requestAnimationFrame(kare);
         }
 
         window.onload = () => {
