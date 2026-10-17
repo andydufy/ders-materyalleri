@@ -587,6 +587,61 @@
             [girilen, sonuc].forEach(depo => Object.keys(depo).forEach(id => { if (id.startsWith(onek)) delete depo[id]; }));
         }
 
+        // ARALIK AÇMA: doğru sonsuz olduğu için "görünen bütün tam sayılar doğru" şartı aranmaz.
+        // Yalnız doğru dönüştürülmüş İKİ ARDIŞIK tam sayının arasındaki kutular açılır.
+        // Açılış kontrol düğmesinde hesaplanır; yazarken açılsa doğru cevabı ele verirdi.
+        const acikAraliklar = {};   // kök ('input-', 'input-c1-', 'input-c2-') -> Set(aralığın alt tam sayısı)
+
+        function kutuDogruMu(id, beklenen) {
+            const v = girilen[id];
+            return v !== undefined && v !== '' && parseInt(v) === beklenen;
+        }
+
+        // Yazılmış tam sayı kutularını işaretler; iki ucu da doğru olan aralıkları açar.
+        function tamSayilariDegerlendir(kok, den) {
+            const onek = `${kok}s1-`;
+            const dogrular = new Set();
+            Object.keys(girilen).forEach(id => {
+                if (!id.startsWith(onek)) return;
+                if (girilen[id] === '') { delete sonuc[id]; return; }
+                const beklenen = Number(id.slice(onek.length));
+                const dogru = kutuDogruMu(id, beklenen);
+                sonuc[id] = dogru ? 'dogru' : 'yanlis';
+                if (dogru) dogrular.add(beklenen / den);
+            });
+            const acik = new Set([...dogrular].filter(i => dogrular.has(i + 1)));
+            acikAraliklar[kok] = acik;
+            return acik;
+        }
+
+        // Açık aralıklardaki ara kutuları işaretler. Tamam sayılması için hepsi doğru olmalı
+        // ve aranan kesir açık bir aralıkta (tam sayıya denk geliyorsa o tam sayının kutusu doğru) olmalı.
+        function araKesirleriDegerlendir(kok, hedef) {
+            const den = hedef.den;
+            const acik = acikAraliklar[kok] || new Set();
+            let hepsiDogru = true;
+            acik.forEach(i => {
+                for (let sub = 1; sub < den; sub++) {
+                    const beklenen = i * den + sub;
+                    const id = `${kok}s2-${beklenen}`;
+                    const dogru = kutuDogruMu(id, beklenen);
+                    sonuc[id] = dogru ? 'dogru' : 'yanlis';
+                    if (!dogru) hepsiDogru = false;
+                }
+            });
+            const tamMi = hedef.num % den === 0;
+            const alt = Math.floor(hedef.num / den);
+            const hedefAcik = tamMi ? kutuDogruMu(`${kok}s1-${hedef.num}`, hedef.num) : acik.has(alt);
+            return { hepsiDogru, hedefAcik, ipucu: hedefIpucu(hedef, tamMi, alt) };
+        }
+
+        function hedefIpucu(hedef, tamMi, alt) {
+            const k = `${hedef.num}/${hedef.den}`;
+            return tamMi
+                ? `${k} kesri ${alt} tam sayısına denk geliyor; önce ${alt} sayısını kesre dönüştürünüz.`
+                : `${k} kesri ${alt} ile ${alt + 1} arasında; bu iki tam sayıyı da kesre dönüştürüp tekrar kontrol ediniz.`;
+        }
+
         // alert() Kalemdar'ın güvenli çerçevesinde açılmaz; uyarı sayfadaki mesaj alanına yazılır.
         function uyar(alanId, metin) {
             const fb = document.getElementById(alanId);
@@ -683,10 +738,11 @@
 
             currentTarget = { num, den };
             kutulariTemizle('input-s');
+            acikAraliklar['input-'] = new Set();
             currentStep = 1; // 1. Adımı Aktifleştir
 
             document.getElementById('step-instruction').innerText = "Adım 1: Tam Sayıları Kesre Dönüştür";
-            document.getElementById('step-subtext').innerHTML = `Sayı doğrusunun altındaki tam sayıların hizasındaki üst kutucuklara, paydası <strong>${den}</strong> olan denk kesir karşılıklarını (payını) yazınız.`;
+            document.getElementById('step-subtext').innerHTML = `Sayı doğrusunun altındaki tam sayıların hizasındaki üst kutucuklara, paydası <strong>${den}</strong> olan denk kesir karşılıklarını (payını) yazınız. Ardışık iki tam sayıyı doğru dönüştürdüğünüzde aralarındaki kutular açılır.`;
             
             const btn = document.getElementById('action-btn');
             btn.innerText = "1. Adımı Kontrol Et";
@@ -748,7 +804,7 @@
 
                             labelTop.innerHTML = `
                                 <div class="input-fraction">
-                                    <input type="number" class="step1-input" data-expected="${currentFractionNum}" placeholder="?" ${kutuNitelikleri(`input-s1-${currentFractionNum}`, currentStep > 1, false)}>
+                                    <input type="number" class="step1-input" data-expected="${currentFractionNum}" placeholder="?" ${kutuNitelikleri(`input-s1-${currentFractionNum}`, currentStep > 2, false)}>
                                     <div style="width:100%; height:2px; background:black; margin:2px 0;"></div>
                                     <span>${den}</span>
                                 </div>
@@ -766,7 +822,7 @@
                             labelTop.className = 'tick-label-top';
                             labelTop.style.left = posX + 'px';
 
-                            const isSubDisabled = (currentStep !== 2);
+                            const isSubDisabled = !(currentStep === 2 && acikAraliklar['input-']?.has(i));
 
                             labelTop.innerHTML = `
                                 <div class="input-fraction sub-fraction">
@@ -794,74 +850,47 @@
         }
 
         function checkStep1() {
-            const inputs = document.querySelectorAll('.step1-input');
-            let allCorrect = true;
-
-            inputs.forEach(input => {
-                const expected = parseInt(input.dataset.expected);
-                const userVal = parseInt(input.value);
-
-                sonuc[input.id] = (userVal === expected) ? 'dogru' : 'yanlis';
-                if(userVal === expected) {
-                    input.style.borderColor = "var(--secondary)";
-                    input.style.backgroundColor = "#d1fae5";
-                } else {
-                    input.style.borderColor = "var(--danger)";
-                    input.style.backgroundColor = "#fee2e2";
-                    allCorrect = false;
-                }
-            });
-
+            const acik = tamSayilariDegerlendir('input-', currentTarget.den);
             const fb = document.getElementById('single-feedback');
-            if(allCorrect && inputs.length > 0) {
-                fb.className = "feedback-msg correct";
-                fb.innerText = "Tebrikler! Görünür tüm tam sayıları doğru dönüştürdünüz. Şimdi tam sayıların arasında kalan kesirleri doldurunuz!";
+            if (acik.size > 0) {
                 currentStep = 2;
-                renderSingleTrack();
-
+                fb.className = "feedback-msg correct";
+                fb.innerText = "Tebrikler! Doğru dönüştürdüğünüz ardışık tam sayıların arasındaki kutular açıldı. Şimdi aradaki kesirleri yazınız!";
                 document.getElementById('step-instruction').innerText = "Adım 2: Aradaki Kesirleri Yaz";
-                document.getElementById('step-subtext').innerHTML = `Tam sayıların arasında kalan çentiklerdeki boş kutucuklara uygun kesirlerin paylarını doldurunuz.`;
+                document.getElementById('step-subtext').innerHTML = `Açılan kutulara uygun kesirlerin paylarını yazınız. Başka bir aralığı da açmak için iki tam sayıyı daha dönüştürüp kontrol edebilirsiniz.`;
                 document.getElementById('action-btn').innerText = "2. Adımı (Ara Kesirleri) Kontrol Et";
             } else {
                 fb.className = "feedback-msg wrong";
-                fb.innerText = "Eksik veya hatalı kutular var! Lütfen tüm tam sayı karşılıklarını kontrol ediniz.";
+                fb.innerText = "Ardışık iki tam sayıyı (örneğin 0 ile 1) doğru dönüştürünüz; aralarındaki kutular o zaman açılır. Kırmızı kutuları kontrol ediniz.";
             }
+            renderSingleTrack();
         }
 
         function checkStep2() {
-            const inputs = document.querySelectorAll('.step2-input');
-            let allCorrect = true;
-
-            inputs.forEach(input => {
-                const expected = parseInt(input.dataset.expected);
-                const userVal = parseInt(input.value);
-
-                sonuc[input.id] = (userVal === expected) ? 'dogru' : 'yanlis';
-                if(userVal === expected) {
-                    input.style.borderColor = "var(--secondary)";
-                    input.style.backgroundColor = "#d1fae5";
-                } else {
-                    input.style.borderColor = "var(--danger)";
-                    input.style.backgroundColor = "#fee2e2";
-                    allCorrect = false;
-                }
-            });
+            const once = acikAraliklar['input-'] || new Set();
+            const acik = tamSayilariDegerlendir('input-', currentTarget.den);
+            const yeniAcilan = [...acik].some(i => !once.has(i));
+            const d = araKesirleriDegerlendir('input-', currentTarget);
 
             const fb = document.getElementById('single-feedback');
-            if(allCorrect && inputs.length > 0) {
+            if (d.hepsiDogru && d.hedefAcik) {
                 fb.className = "feedback-msg correct";
-                fb.innerText = `Mükemmel! Sayı doğrusundaki tüm kesirleri eksiksiz doldurdunuz. Aradığımız ${currentTarget.num}/${currentTarget.den} kesri aşağıda işaretlendi!`;
-                
+                fb.innerText = `Mükemmel! Açtığınız aralıklardaki kesirleri eksiksiz doldurdunuz. Aradığımız ${currentTarget.num}/${currentTarget.den} kesri aşağıda işaretlendi!`;
+
                 currentStep = 3;
                 document.getElementById('action-btn').style.display = "none";
                 document.getElementById('step-instruction').innerText = "Adım 3: Aranan Kesrin Bulunması ve İşaretlenmesi";
-                document.getElementById('step-subtext').innerText = "Tüm kesirler sırayla dizildi ve hedef kesrimiz sayı doğrusunda bulundu!";
-                
-                renderSingleTrack();
+                document.getElementById('step-subtext').innerText = "Kesirler sırayla dizildi ve hedef kesrimiz sayı doğrusunda bulundu!";
+            } else if (d.hepsiDogru) {
+                fb.className = "feedback-msg wrong";
+                fb.innerText = `Açık aralıklar doğru! ${d.ipucu}`;
             } else {
                 fb.className = "feedback-msg wrong";
-                fb.innerText = "Aradaki kesirlerde hatalar var! Kesirlerin paylarının sırayla arttığına/azaldığına dikkat ediniz.";
+                fb.innerText = yeniAcilan
+                    ? "Yeni bir aralık açıldı; oradaki kutuları da doldurunuz."
+                    : "Aradaki kesirlerde hatalar var! Kesirlerin paylarının sırayla arttığına/azaldığına dikkat ediniz.";
             }
+            renderSingleTrack();
         }
 
         function showTargetPinOnTrack(track, val, text) {
@@ -888,13 +917,15 @@
             compTarget1 = { num: n1, den: d1 };
             compTarget2 = { num: n2, den: d2 };
             kutulariTemizle('input-c');
+            acikAraliklar['input-c1-'] = new Set();
+            acikAraliklar['input-c2-'] = new Set();
             currentCompStep = 1; // 1. Adımı Aktifleştir
             document.getElementById('tag-2a').innerText = `1. kesir: ${n1}/${d1}`;
             document.getElementById('tag-2b').innerText = `2. kesir: ${n2}/${d2}`;
 
             document.getElementById('comp-user-symbol').value = "?";
             document.getElementById('comp-step-instruction').innerText = "Adım 1: Tam Sayıları Kesirlere Dönüştürün";
-            document.getElementById('comp-step-subtext').innerText = "Her iki sayı doğrusundaki tam sayıların hizasındaki üst kutucuklara uygun denk kesir paylarını yazınız.";
+            document.getElementById('comp-step-subtext').innerText = "Her iki sayı doğrusundaki tam sayıların hizasındaki üst kutucuklara uygun denk kesir paylarını yazınız. Ardışık iki tam sayıyı doğru dönüştürdüğünüzde aralarındaki kutular açılır.";
             
             const btn = document.getElementById('comp-action-btn');
             btn.innerText = "1. Adımı Kontrol Et";
@@ -962,7 +993,7 @@
 
                             labelTop.innerHTML = `
                                 <div class="input-fraction">
-                                    <input type="number" class="${prefix}-step1-input" data-expected="${currentFractionNum}" placeholder="?" ${kutuNitelikleri(`input-${prefix}-s1-${currentFractionNum}`, currentCompStep > 1, false)}>
+                                    <input type="number" class="${prefix}-step1-input" data-expected="${currentFractionNum}" placeholder="?" ${kutuNitelikleri(`input-${prefix}-s1-${currentFractionNum}`, currentCompStep > 2, false)}>
                                     <div style="width:100%; height:2px; background:black; margin:2px 0;"></div>
                                     <span>${den}</span>
                                 </div>
@@ -980,7 +1011,7 @@
                             labelTop.className = 'tick-label-top';
                             labelTop.style.left = posX + 'px';
 
-                            const isSubDisabled = (currentCompStep !== 2);
+                            const isSubDisabled = !(currentCompStep === 2 && acikAraliklar[`input-${prefix}-`]?.has(i));
 
                             labelTop.innerHTML = `
                                 <div class="input-fraction sub-fraction">
@@ -1018,76 +1049,54 @@
         }
 
         function checkCompareStep1() {
-            const inputs1 = document.querySelectorAll('.c1-step1-input');
-            const inputs2 = document.querySelectorAll('.c2-step1-input');
-            let allCorrect = true;
-
-            [...inputs1, ...inputs2].forEach(input => {
-                const expected = parseInt(input.dataset.expected);
-                const userVal = parseInt(input.value);
-
-                sonuc[input.id] = (userVal === expected) ? 'dogru' : 'yanlis';
-                if(userVal === expected) {
-                    input.style.borderColor = "var(--secondary)";
-                    input.style.backgroundColor = "#d1fae5";
-                } else {
-                    input.style.borderColor = "var(--danger)";
-                    input.style.backgroundColor = "#fee2e2";
-                    allCorrect = false;
-                }
-            });
+            const a = tamSayilariDegerlendir('input-c1-', compTarget1.den);
+            const b = tamSayilariDegerlendir('input-c2-', compTarget2.den);
 
             const fb = document.getElementById('compare-feedback');
-            if(allCorrect && (inputs1.length + inputs2.length) > 0) {
+            if (a.size > 0 && b.size > 0) {
                 fb.className = "feedback-msg correct";
-                fb.innerText = "Harika! İki sayı doğrusundaki tam sayı dönüşümleri doğru. Şimdi aralardaki kesirleri doldurunuz!";
+                fb.innerText = "Harika! İki doğruda da doğru dönüştürdüğünüz ardışık tam sayıların arası açıldı. Şimdi aralardaki kesirleri doldurunuz!";
                 currentCompStep = 2;
-                renderCompareTracks();
 
                 document.getElementById('comp-step-instruction').innerText = "Adım 2: Aradaki Kesirleri Doldurun";
-                document.getElementById('comp-step-subtext').innerText = "Tam sayıların arasında kalan tüm çentiklerdeki boşluklara uygun kesir paylarını yazınız.";
+                document.getElementById('comp-step-subtext').innerText = "Açılan kutulara uygun kesir paylarını yazınız. Başka bir aralığı da açmak için iki tam sayıyı daha dönüştürüp kontrol edebilirsiniz.";
                 document.getElementById('comp-action-btn').innerText = "2. Adımı (Ara Kesirleri) Kontrol Et";
             } else {
+                const eksik = (a.size === 0 && b.size === 0) ? "İki doğrunun her birinde" : (a.size === 0 ? "1. kesrin doğrusunda" : "2. kesrin doğrusunda");
                 fb.className = "feedback-msg wrong";
-                fb.innerText = "Hata var! Tam sayıları paydaya göre genişletirken tam sayı ile paydayı çarptığınızdan emin olun.";
+                fb.innerText = `${eksik} ardışık iki tam sayıyı (örneğin 0 ile 1) doğru dönüştürünüz; tam sayıyı paydayla çarptığınızdan emin olun.`;
             }
+            renderCompareTracks();
         }
 
         function checkCompareStep2() {
-            const inputs1 = document.querySelectorAll('.c1-step2-input');
-            const inputs2 = document.querySelectorAll('.c2-step2-input');
-            let allCorrect = true;
-
-            [...inputs1, ...inputs2].forEach(input => {
-                const expected = parseInt(input.dataset.expected);
-                const userVal = parseInt(input.value);
-
-                sonuc[input.id] = (userVal === expected) ? 'dogru' : 'yanlis';
-                if(userVal === expected) {
-                    input.style.borderColor = "var(--secondary)";
-                    input.style.backgroundColor = "#d1fae5";
-                } else {
-                    input.style.borderColor = "var(--danger)";
-                    input.style.backgroundColor = "#fee2e2";
-                    allCorrect = false;
-                }
-            });
+            const once1 = acikAraliklar['input-c1-'] || new Set();
+            const once2 = acikAraliklar['input-c2-'] || new Set();
+            const a = tamSayilariDegerlendir('input-c1-', compTarget1.den);
+            const b = tamSayilariDegerlendir('input-c2-', compTarget2.den);
+            const yeniAcilan = [...a].some(i => !once1.has(i)) || [...b].some(i => !once2.has(i));
+            const d1 = araKesirleriDegerlendir('input-c1-', compTarget1);
+            const d2 = araKesirleriDegerlendir('input-c2-', compTarget2);
 
             const fb = document.getElementById('compare-feedback');
-            if(allCorrect && (inputs1.length + inputs2.length) > 0) {
+            if (d1.hepsiDogru && d2.hepsiDogru && d1.hedefAcik && d2.hedefAcik) {
                 fb.className = "feedback-msg correct";
-                fb.innerText = "Tebrikler! Sayı doğruları eksiksiz dolduruldu ve kesirler hizalandı. Şimdi yukarıdaki (?) simgesine tıklayarak doğru sembolü seçin ve kontrol edin!";
-                
+                fb.innerText = "Tebrikler! Sayı doğruları dolduruldu ve kesirler hizalandı. Şimdi yukarıdaki (?) simgesine tıklayarak doğru sembolü seçin ve kontrol edin!";
+
                 currentCompStep = 3;
                 document.getElementById('comp-step-instruction').innerText = "Adım 3: Sayı Doğrularına Bakarak Kesirleri Karşılaştırın";
                 document.getElementById('comp-step-subtext').innerText = "Sağda kalan kesrin her zaman daha büyük olduğunu unutmayın. İki kesir arasındaki sembolü seçip yanıtınızı doğrulayın.";
                 document.getElementById('comp-action-btn').innerText = "Karşılaştırmayı Doğrula";
-
-                renderCompareTracks();
+            } else if (d1.hepsiDogru && d2.hepsiDogru) {
+                fb.className = "feedback-msg wrong";
+                fb.innerText = `Açık aralıklar doğru! ${!d1.hedefAcik ? d1.ipucu : d2.ipucu}`;
             } else {
                 fb.className = "feedback-msg wrong";
-                fb.innerText = "Aradaki kesirlerde hatalar var! Kesirlerin paylarını sırayla artırıp/azaltarak tekrar kontrol ediniz.";
+                fb.innerText = yeniAcilan
+                    ? "Yeni bir aralık açıldı; oradaki kutuları da doldurunuz."
+                    : "Aradaki kesirlerde hatalar var! Kesirlerin paylarını sırayla artırıp/azaltarak tekrar kontrol ediniz.";
             }
+            renderCompareTracks();
         }
 
         function checkCompareFinal() {
