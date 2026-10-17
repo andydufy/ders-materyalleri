@@ -566,6 +566,27 @@
         const state1 = { unitPixels: 200, offsetX: 0 };
         const state2 = { unitPixels: 200, offsetX: 0 };
 
+        // Doğru her yakınlaştırma/kaydırmada baştan çizilir; yazılanlar ve son kontrolün
+        // rengi DOM'da değil burada durur, yoksa her çizimde silinir.
+        const girilen = {};   // kutu id -> yazılan değer
+        const sonuc = {};     // kutu id -> 'dogru' | 'yanlis'
+
+        document.addEventListener('input', (e) => {
+            if (e.target.matches('.line-track input')) girilen[e.target.id] = e.target.value;
+        });
+
+        function kutuNitelikleri(id, pasif, soluk) {
+            const stil = [];
+            if (sonuc[id] === 'dogru') stil.push('border-color:var(--secondary)', 'background-color:#d1fae5');
+            if (sonuc[id] === 'yanlis') stil.push('border-color:var(--danger)', 'background-color:#fee2e2');
+            if (soluk) stil.push('opacity:0.4');
+            return `id="${id}" value="${girilen[id] ?? ''}" ${pasif ? 'disabled' : ''} style="${stil.join(';')}"`;
+        }
+
+        function kutulariTemizle(onek) {
+            [girilen, sonuc].forEach(depo => Object.keys(depo).forEach(id => { if (id.startsWith(onek)) delete depo[id]; }));
+        }
+
         // alert() Kalemdar'ın güvenli çerçevesinde açılmaz; uyarı sayfadaki mesaj alanına yazılır.
         function uyar(alanId, metin) {
             const fb = document.getElementById(alanId);
@@ -661,6 +682,7 @@
             if(!den || den <= 0) { uyar('single-feedback', "Payda 0'dan büyük olmalıdır!"); return; }
 
             currentTarget = { num, den };
+            kutulariTemizle('input-s');
             currentStep = 1; // 1. Adımı Aktifleştir
 
             document.getElementById('step-instruction').innerText = "Adım 1: Tam Sayıları Kesre Dönüştür";
@@ -723,11 +745,10 @@
                             labelTop.className = 'tick-label-top';
                             labelTop.style.left = posX + 'px';
                             
-                            const existingVal = document.getElementById(`input-s1-${currentFractionNum}`)?.value || '';
 
                             labelTop.innerHTML = `
                                 <div class="input-fraction">
-                                    <input type="number" id="input-s1-${currentFractionNum}" class="step1-input" data-expected="${currentFractionNum}" value="${existingVal}" placeholder="?" ${currentStep > 1 ? 'disabled' : ''}>
+                                    <input type="number" class="step1-input" data-expected="${currentFractionNum}" placeholder="?" ${kutuNitelikleri(`input-s1-${currentFractionNum}`, currentStep > 1, false)}>
                                     <div style="width:100%; height:2px; background:black; margin:2px 0;"></div>
                                     <span>${den}</span>
                                 </div>
@@ -745,12 +766,11 @@
                             labelTop.className = 'tick-label-top';
                             labelTop.style.left = posX + 'px';
 
-                            const existingVal = document.getElementById(`input-s2-${currentFractionNum}`)?.value || '';
                             const isSubDisabled = (currentStep !== 2);
 
                             labelTop.innerHTML = `
                                 <div class="input-fraction sub-fraction">
-                                    <input type="number" id="input-s2-${currentFractionNum}" class="step2-input" data-expected="${currentFractionNum}" value="${existingVal}" placeholder="?" ${isSubDisabled ? 'disabled style="opacity:0.4;"' : ''}>
+                                    <input type="number" class="step2-input" data-expected="${currentFractionNum}" placeholder="?" ${kutuNitelikleri(`input-s2-${currentFractionNum}`, isSubDisabled, isSubDisabled)}>
                                     <div style="width:100%; height:2px; background:#64748b; margin:2px 0;"></div>
                                     <span style="font-size:0.8rem; color:#64748b;">${den}</span>
                                 </div>
@@ -781,6 +801,7 @@
                 const expected = parseInt(input.dataset.expected);
                 const userVal = parseInt(input.value);
 
+                sonuc[input.id] = (userVal === expected) ? 'dogru' : 'yanlis';
                 if(userVal === expected) {
                     input.style.borderColor = "var(--secondary)";
                     input.style.backgroundColor = "#d1fae5";
@@ -815,6 +836,7 @@
                 const expected = parseInt(input.dataset.expected);
                 const userVal = parseInt(input.value);
 
+                sonuc[input.id] = (userVal === expected) ? 'dogru' : 'yanlis';
                 if(userVal === expected) {
                     input.style.borderColor = "var(--secondary)";
                     input.style.backgroundColor = "#d1fae5";
@@ -865,6 +887,7 @@
 
             compTarget1 = { num: n1, den: d1 };
             compTarget2 = { num: n2, den: d2 };
+            kutulariTemizle('input-c');
             currentCompStep = 1; // 1. Adımı Aktifleştir
             document.getElementById('tag-2a').innerText = `1. kesir: ${n1}/${d1}`;
             document.getElementById('tag-2b').innerText = `2. kesir: ${n2}/${d2}`;
@@ -936,11 +959,10 @@
                             labelTop.className = 'tick-label-top';
                             labelTop.style.left = posX + 'px';
                             
-                            const existingVal = document.getElementById(`input-${prefix}-s1-${currentFractionNum}`)?.value || '';
 
                             labelTop.innerHTML = `
                                 <div class="input-fraction">
-                                    <input type="number" id="input-${prefix}-s1-${currentFractionNum}" class="${prefix}-step1-input" data-expected="${currentFractionNum}" value="${existingVal}" placeholder="?" ${currentCompStep > 1 ? 'disabled' : ''}>
+                                    <input type="number" class="${prefix}-step1-input" data-expected="${currentFractionNum}" placeholder="?" ${kutuNitelikleri(`input-${prefix}-s1-${currentFractionNum}`, currentCompStep > 1, false)}>
                                     <div style="width:100%; height:2px; background:black; margin:2px 0;"></div>
                                     <span>${den}</span>
                                 </div>
@@ -958,12 +980,11 @@
                             labelTop.className = 'tick-label-top';
                             labelTop.style.left = posX + 'px';
 
-                            const existingVal = document.getElementById(`input-${prefix}-s2-${currentFractionNum}`)?.value || '';
                             const isSubDisabled = (currentCompStep !== 2);
 
                             labelTop.innerHTML = `
                                 <div class="input-fraction sub-fraction">
-                                    <input type="number" id="input-${prefix}-s2-${currentFractionNum}" class="${prefix}-step2-input" data-expected="${currentFractionNum}" value="${existingVal}" placeholder="?" ${isSubDisabled ? 'disabled style="opacity:0.4;"' : ''}>
+                                    <input type="number" class="${prefix}-step2-input" data-expected="${currentFractionNum}" placeholder="?" ${kutuNitelikleri(`input-${prefix}-s2-${currentFractionNum}`, isSubDisabled, isSubDisabled)}>
                                     <div style="width:100%; height:2px; background:#64748b; margin:2px 0;"></div>
                                     <span style="font-size:0.8rem; color:#64748b;">${den}</span>
                                 </div>
@@ -1005,6 +1026,7 @@
                 const expected = parseInt(input.dataset.expected);
                 const userVal = parseInt(input.value);
 
+                sonuc[input.id] = (userVal === expected) ? 'dogru' : 'yanlis';
                 if(userVal === expected) {
                     input.style.borderColor = "var(--secondary)";
                     input.style.backgroundColor = "#d1fae5";
@@ -1040,6 +1062,7 @@
                 const expected = parseInt(input.dataset.expected);
                 const userVal = parseInt(input.value);
 
+                sonuc[input.id] = (userVal === expected) ? 'dogru' : 'yanlis';
                 if(userVal === expected) {
                     input.style.borderColor = "var(--secondary)";
                     input.style.backgroundColor = "#d1fae5";
