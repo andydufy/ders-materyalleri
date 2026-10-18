@@ -853,8 +853,21 @@
             document.getElementById('single-feedback').style.display = 'none';
         }
 
+        // Çizim kutuları baştan kurar; odaktaki kutu silinirse telefon klavyesi kapanır.
+        // Odak aynı kimlikli yeni kutuya geri verilir.
+        function odagiKoru(track, ciz) {
+            const odak = document.activeElement;
+            const odakId = (odak && track.contains(odak)) ? odak.id : null;
+            ciz();
+            if (odakId) document.getElementById(odakId)?.focus({ preventScroll: true });
+        }
+
         function renderSingleTrack() {
             const track = document.getElementById('track-1');
+            odagiKoru(track, () => renderSingleTrackIci(track));
+        }
+
+        function renderSingleTrackIci(track) {
             track.innerHTML = '';
 
             const den = currentTarget.den;
@@ -1051,6 +1064,10 @@
 
         function renderSingleInteractiveCompareTrack(trackId, den, prefix) {
             const track = document.getElementById(trackId);
+            odagiKoru(track, () => compareTrackIci(track, den, prefix));
+        }
+
+        function compareTrackIci(track, den, prefix) {
             track.innerHTML = '';
 
             const vpWidth = document.getElementById('viewport-2a').offsetWidth;
@@ -1340,9 +1357,14 @@
             renderSingleTrack();
             renderCompareTracks();
 
-            // Ekran boyutu değişince (tam ekran, döndürme) doğrular yeniden çizilir.
+            // Ekran GENİŞLİĞİ değişince (tam ekran, döndürme) doğrular yeniden çizilir.
+            // Android'de klavye açılınca yalnız YÜKSEKLİK değişir ve resize gelir; o an yeniden
+            // çizmek odaktaki kutuyu silip klavyeyi hemen kapatıyordu. Çizim yalnız genişliğe bağlı.
             let bekleyen = 0;
+            let sonGenislik = window.innerWidth;
             window.addEventListener('resize', () => {
+                if (window.innerWidth === sonGenislik) return;
+                sonGenislik = window.innerWidth;
                 cancelAnimationFrame(bekleyen);
                 bekleyen = requestAnimationFrame(() => { renderSingleTrack(); renderCompareTracks(); });
             });
