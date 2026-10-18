@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tam Sayıları Sıralama ve Karşılaştırma - Matematik Öğretmeni</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Fredoka & Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        heading: ['Fredoka', 'sans-serif'],
+                        body: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        pos: {
+                            light: '#dcfce7',
+                            DEFAULT: '#22c55e',
+                            dark: '#15803d'
+                        },
+                        neg: {
+                            light: '#ffe4e6',
+                            DEFAULT: '#f43f5e',
+                            dark: '#be123c'
+                        },
+                        zero: {
+                            light: '#f3f4f6',
+                            DEFAULT: '#6b7280',
+                            dark: '#374151'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            min-height: 100vh;
+        }
+        h1, h2, h3, .font-heading {
+            font-family: 'Fredoka', sans-serif;
+        }
+        .number-card {
+            touch-action: none;
+            user-select: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .number-card:hover {
+            transform: translateY(-3px);
+        }
+        .dragging {
+            opacity: 0.5;
+            transform: scale(1.05);
+        }
+        .drag-over {
+            border-color: #3b82f6 !important;
+            background-color: #eff6ff !important;
+        }
+        .sekme {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            padding: 0.75rem 1rem;
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 600;
+            font-size: 1.05rem;
+            color: #4338ca;
+            background-color: #ffffff;
+            border: 2px solid #6366f1;
+            border-radius: 1rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+            transition: background-color 0.2s, color 0.2s, box-shadow 0.2s;
+        }
+        .sekme:hover { background-color: #eef2ff; }
+        .sekme-aktif,
+        .sekme-aktif:hover {
+            background-color: #4f46e5;
+            color: #ffffff;
+            border-color: #4338ca;
+            box-shadow: 0 6px 14px -4px rgba(79, 70, 229, 0.55);
+        }
+        .sekme-no {
+            flex-shrink: 0;
+            display: inline-grid;
+            place-items: center;
+            width: 1.8em;
+            height: 1.8em;
+            border-radius: 9999px;
+            background-color: #4f46e5;
+            color: #ffffff;
+            font-weight: 700;
+        }
+        .sekme-aktif .sekme-no {
+            background-color: #ffffff;
+            color: #4f46e5;
+        }
+        /* Sayı kutusunun artır/azalt okları dar kutuda rakamların yerini kaplamasın. */
+        .nl-girdi { -moz-appearance: textfield; appearance: textfield; }
+        .nl-girdi::-webkit-inner-spin-button,
+        .nl-girdi::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        /* Dokunarak yerleştirmede seçili kart. */
+        .nl-secili {
+            outline: 3px solid #6366f1;
+            outline-offset: 3px;
+            border-radius: 0.9rem;
+            transform: scale(1.12);
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased pb-12">
+
+    <!-- Header / Navbar -->
+    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-slate-200 shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-tr from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white text-xl font-bold shadow-md">
+                    <i class="fa-solid font-bold">±</i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold text-slate-800 leading-tight">Tam Sayılarda Sıralama</h1>
+                    <p class="text-xs text-slate-500">7. Sınıf Matematik Etkileşimli Öğrenme Portalı</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-6xl mx-auto px-4 mt-6">
+
+        <!-- Etkinlik sekmeleri: başlığın altında, büyük ve numaralı; dört etkinlik de gözden kaçmasın. -->
+        <nav class="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-6" aria-label="Etkinlikler">
+            <button onclick="switchTab('number-line')" id="tab-number-line" class="tab-btn sekme sekme-aktif">
+                <span class="sekme-no">1</span> Sayı Doğrusu
+            </button>
+            <button onclick="switchTab('sorting')" id="tab-sorting" class="tab-btn sekme">
+                <span class="sekme-no">2</span> Sıralama
+            </button>
+            <button onclick="switchTab('between')" id="tab-between" class="tab-btn sekme">
+                <span class="sekme-no">3</span> Arada Kalanlar
+            </button>
+            <button onclick="switchTab('quiz')" id="tab-quiz" class="tab-btn sekme">
+                <span class="sekme-no">4</span> Yarışma
+            </button>
+        </nav>
+
+        <!-- Teacher's Note Banner -->
+        <div class="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 rounded-2xl p-4 text-white shadow-lg mb-6 flex items-center gap-4">
+            <div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center shrink-0 text-2xl">
+                👨‍🏫
+            </div>
+            <div class="flex-1">
+                <h2 class="font-heading text-lg font-bold">Öğretmenin Notu:</h2>
+                <p id="teacher-note" class="text-sm text-indigo-50 leading-relaxed">
+                    Tam sayılarda sağa gidildikçe sayılar <b>büyür</b> (+), sola gidildikçe sayılar <b>küçülür</b> (-). Negatif sayılarda sıfırdan uzaklaştıkça değer küçülür!
+                </p>
+            </div>
+        </div>
+
+        <!-- MODULE 1: Sayı Doğrusu (Interactive Number Line) -->
+        <section id="module-number-line" class="tab-content block">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                    <div>
+                        <h2 class="text-xl font-bold font-heading text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-ruler-horizontal text-indigo-500"></i> Etkileşimli Sayı Doğrusu
+                        </h2>
+                        <p id="nl-yonerge" class="text-slate-500 text-sm">Sayı kartlarını sürükleyip doğru konuma bırakın ya da önce karta, sonra kutuya dokunun.</p>
+                    </div>
+                    <button onclick="resetNumberLine()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl text-sm transition flex items-center gap-2">
+                        <i class="fa-solid fa-rotate-right"></i> Yenile
+                    </button>
+                </div>
+
+                <!-- Seviye: 1'de sayılar birer birer artar; sonrakilerde artış miktarını öğrenci bulur. -->
+                <div class="flex flex-wrap items-center gap-3 mb-5 p-3 bg-indigo-50 border border-indigo-100 rounded-xl">
+                    <span class="text-sm font-bold text-indigo-900">Seviye:</span>
+                    <div id="nl-seviyeler" class="flex flex-wrap gap-2"></div>
+                    <span id="nl-seviye-aciklama" class="text-sm font-semibold text-indigo-800"></span>
+                </div>
+
+                <!-- Guidance indicators -->
+                <div class="flex justify-between items-center text-xs md:text-sm font-semibold mb-2 px-2">
+                    <span class="text-rose-600 flex items-center gap-1">
+                        <i class="fa-solid fa-arrow-left"></i> Değer Küçülür (Sola Doğru)
+                    </span>
+                    <span class="text-slate-400 font-medium">0 Referans Noktası (Nötr)</span>
+                    <span class="text-emerald-600 flex items-center gap-1">
+                        Değer Büyür (Sağa Doğru) <i class="fa-solid fa-arrow-right"></i>
+                    </span>
+                </div>
+
+                <!-- Yakınlaştırma: "Uzaklaştır" doğrunun tamamını kutuya sığdırır. -->
+                <div class="flex justify-end gap-2 mt-3">
+                    <button id="nl-uzaklastir" onclick="nlYakinlastir(-1)" aria-label="Uzaklaştır" class="w-11 h-11 rounded-xl border-2 border-indigo-300 bg-white text-indigo-700 text-lg hover:bg-indigo-50 transition disabled:opacity-40 disabled:cursor-not-allowed">
+                        <i class="fa-solid fa-magnifying-glass-minus"></i>
+                    </button>
+                    <button id="nl-yakinlastir" onclick="nlYakinlastir(1)" aria-label="Yakınlaştır" class="w-11 h-11 rounded-xl border-2 border-indigo-300 bg-white text-indigo-700 text-lg hover:bg-indigo-50 transition disabled:opacity-40 disabled:cursor-not-allowed">
+                        <i class="fa-solid fa-magnifying-glass-plus"></i>
+                    </button>
+                </div>
+
+                <!-- Number Line Container -->
+                <!-- Çentik ve etiketler mutlak konumlu: iç kutu onlara yer açmazsa dikey kaydırma çubuğu çıkıyordu. -->
+                <div id="nl-kap" class="relative overflow-x-auto overflow-y-hidden py-8 px-2 sm:px-4 bg-slate-50 rounded-xl border border-slate-200 mt-2 mb-4">
+                    <div id="nl-cizgi" class="relative pb-12" style="--nl-kutu: 48px;">
+                        <!-- Horizontal Axis Bar -->
+                        <div class="h-3 bg-gradient-to-r from-rose-400 via-slate-300 to-emerald-400 rounded-full w-full relative my-8">
+                            <!-- Arrow Heads -->
+                            <div class="absolute -left-2 -top-1.5 text-rose-500 text-xl font-bold"><i class="fa-solid fa-caret-left"></i></div>
+                            <div class="absolute -right-2 -top-1.5 text-emerald-500 text-xl font-bold"><i class="fa-solid fa-caret-right"></i></div>
+                        </div>
+
+                        <!-- Ticks & Target Drop Zones -->
+                        <div id="number-line-ticks" class="flex justify-between items-center absolute w-full top-3">
+                            <!-- JS Generated -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Draggable Pool for Number Line -->
+                <div id="nl-havuz-bolumu" class="mt-6">
+                    <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-hand-pointer text-indigo-500"></i> Yerleştirilecek Sayılar:
+                    </h3>
+                    <div id="nl-drag-pool" class="flex flex-wrap gap-3 min-h-[60px] p-4 bg-slate-100/70 rounded-xl border border-dashed border-slate-300 items-center justify-center">
+                        <!-- JS Generated Draggables -->
+                    </div>
+                </div>
+
+                <!-- 2. seviyeden itibaren sayılar kartla verilmez; öğrenci kutulara yazar. -->
+                <div id="nl-yaz-bolumu" class="mt-6 hidden">
+                    <div class="flex flex-col items-center gap-3">
+                        <p class="text-sm text-slate-600 text-center">Boş kutulara gelmesi gereken sayıları yazın, sonra kontrol edin.</p>
+                        <button onclick="nlYaziKontrol()" class="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-md transition transform active:scale-95 flex items-center gap-2 text-base">
+                            <i class="fa-solid fa-circle-check"></i> Kontrol Et
+                        </button>
+                    </div>
+                </div>
+
+                <div id="nl-feedback" class="mt-4 text-center font-bold text-sm hidden"></div>
+            </div>
+        </section>
+
+        <!-- MODULE 2: Küçükten Büyüğe / Büyükten Küçüğe Sıralama -->
+        <section id="module-sorting" class="tab-content hidden">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                    <div>
+                        <h2 class="text-xl font-bold font-heading text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-sort-numeric-down text-indigo-500"></i> Tam Sayıları Sıralama Bulmacası
+                        </h2>
+                        <p class="text-slate-500 text-sm">Verilen sayıları istenen yönde doğru sıraya dizin.</p>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button onclick="initSortingActivity('asc')" id="sort-asc-btn" class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-xl text-sm transition hover:bg-indigo-700 shadow-sm">
+                            Küçükten Büyüğe ( <i class="fa-solid fa-arrow-right-long"></i> )
+                        </button>
+                        <button onclick="initSortingActivity('desc')" id="sort-desc-btn" class="px-4 py-2 bg-slate-100 text-slate-700 font-semibold rounded-xl text-sm transition hover:bg-slate-200">
+                            Büyükten Küçüğe ( <i class="fa-solid fa-arrow-right-long"></i> )
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Instruction Banner -->
+                <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 mb-6 text-center">
+                    <span class="text-xs uppercase tracking-wider font-bold text-indigo-500 block mb-1">GÖREV</span>
+                    <p id="sort-instruction" class="text-indigo-900 font-bold text-lg">
+                        Sayıları KÜÇÜKTEN BÜYÜĞE doğru sıralayın!
+                    </p>
+                </div>
+
+                <!-- Sorting Drop Slots -->
+                <div class="mb-8">
+                    <p class="text-xs font-semibold text-slate-400 mb-2 text-center uppercase tracking-wider">Hedef Sıralama Kutuları</p>
+                    <div id="sorting-slots" class="flex flex-wrap justify-center gap-3 min-h-[90px] p-4 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                        <!-- Slots generated by JS -->
+                    </div>
+                </div>
+
+                <!-- Draggable Pool -->
+                <div class="mb-6">
+                    <p class="text-xs font-semibold text-slate-400 mb-2 text-center uppercase tracking-wider">Kullanılabilir Sayı Kartları</p>
+                    <div id="sorting-pool" class="flex flex-wrap justify-center gap-3 min-h-[80px] p-4 bg-slate-100/60 rounded-xl items-center">
+                        <!-- JS Cards -->
+                    </div>
+                </div>
+
+                <!-- Validation & Feedback -->
+                <div class="flex flex-col items-center gap-3">
+                    <button onclick="checkSorting()" class="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-md transition transform active:scale-95 flex items-center gap-2 text-base">
+                        <i class="fa-solid fa-circle-check"></i> Sıralamayı Kontrol Et
+                    </button>
+                    <div id="sorting-feedback" class="text-center font-bold text-base mt-2 min-h-[28px]"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MODULE 3: Arada Kaldıklarını Sor (Dedicated Between Questions) -->
+        <section id="module-between" class="tab-content hidden">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 class="text-xl font-bold font-heading text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-arrows-left-right-to-line text-indigo-500"></i> "Arada Kaldıklarını Sor!" Modülü
+                        </h2>
+                        <p class="text-slate-500 text-sm">İki tam sayı arasındaki tam sayıları bulma veya miktarını hesaplama alıştırmaları.</p>
+                    </div>
+                    <button onclick="generateBetweenQuestion()" class="px-4 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-semibold rounded-xl text-sm transition">
+                        <i class="fa-solid fa-shuffle mr-1"></i> Yeni Soru Sor
+                    </button>
+                </div>
+
+                <!-- Interactive Question Card -->
+                <div class="max-w-2xl mx-auto bg-gradient-to-br from-slate-900 to-indigo-950 text-white p-6 sm:p-8 rounded-3xl shadow-xl relative overflow-hidden mb-8">
+                    <div class="absolute -right-8 -top-8 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl"></div>
+
+                    <div class="flex items-center gap-2 text-indigo-400 text-xs font-bold uppercase tracking-widest mb-3">
+                        <span class="w-2 h-2 rounded-full bg-indigo-400 animate-ping"></span> Soru Türü: Arada Kalan Tam Sayılar
+                    </div>
+
+                    <h3 id="between-question-text" class="text-xl sm:text-2xl font-bold font-heading mb-6 leading-relaxed text-indigo-50">
+                        <!-- JS Loaded -->
+                    </h3>
+
+                    <!-- Visual Helper / Hint Line -->
+                    <!-- Aradaki sayıları gösterdiği için cevaptan önce gizli: cevabı vermesin. -->
+                    <div id="between-ipucu" class="bg-white/10 backdrop-blur-md p-4 rounded-xl mb-6 hidden">
+                        <div class="text-xs text-indigo-200 font-semibold mb-2">💡 SAYI DOĞRUSUNDA GÖRELİM:</div>
+                        <div id="between-visual-line" class="flex justify-center items-center gap-2 py-2 overflow-x-auto text-sm font-bold">
+                            <!-- Dynamic Visual Line -->
+                        </div>
+                    </div>
+
+                    <!-- Answer Options / Input Area -->
+                    <div id="between-options-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                        <!-- JS Buttons or Inputs -->
+                    </div>
+
+                    <!-- Feedback Area -->
+                    <div id="between-feedback" class="mt-4 p-3 rounded-xl text-center font-bold text-sm hidden"></div>
+                </div>
+
+                <!-- Explanation Box -->
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-amber-900 text-sm">
+                    <h4 class="font-bold flex items-center gap-2 mb-1">
+                        <i class="fa-solid fa-lightbulb text-amber-500"></i> Püf Noktası:
+                    </h4>
+                    <p>İki tam sayı <i>arasındaki</i> sayılar sorulduğunda, <b>sınır noktaları (verilen iki sayı) dahil edilmez</b>! Sadece aralarında kalan tam sayılar sayılır.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- MODULE 4: Hızlı Yarışma & Test (Challenge / Quiz) -->
+        <section id="module-quiz" class="tab-content hidden">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 class="text-xl font-bold font-heading text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-trophy text-amber-500"></i> Tam Sayılar Bilgi Yarışması
+                        </h2>
+                        <p class="text-slate-500 text-sm">Öğrendiklerini test et, puanları topla ve matematik şampiyonu ol!</p>
+                    </div>
+                    <div class="bg-amber-100 text-amber-800 px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-star text-amber-500"></i> Puan: <span id="quiz-score" class="text-lg">0</span>
+                    </div>
+                </div>
+
+                <!-- Quiz Card -->
+                <div class="max-w-2xl mx-auto bg-slate-50 rounded-2xl border border-slate-200 p-6 shadow-sm">
+                    <div class="flex justify-between items-center text-xs text-slate-400 font-bold mb-4">
+                        <span id="quiz-progress-text">Soru 1 / 5</span>
+                        <span class="text-emerald-600"><i class="fa-solid fa-bolt"></i> Anında Geri Bildirim</span>
+                    </div>
+
+                    <h3 id="quiz-question" class="text-lg font-bold text-slate-800 mb-6 font-heading">
+                        <!-- JS Loaded -->
+                    </h3>
+
+                    <div id="quiz-options" class="space-y-3 mb-6">
+                        <!-- JS Loaded -->
+                    </div>
+
+                    <div id="quiz-feedback" class="p-3 rounded-xl font-bold text-sm mb-4 text-center hidden"></div>
+
+                    <div class="flex justify-end">
+                        <button id="quiz-next-btn" onclick="nextQuizQuestion()" class="hidden px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-sm transition">
+                            Sonraki Soru <i class="fa-solid fa-arrow-right ml-1"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // =========================================================================
+        // GLOBAL STATE & UTILITIES
+        // =========================================================================
+
+        // Helper to generate styled badges for numbers
+        function getNumberBadgeHtml(num, size = 'md') {
+            let bgClass = "bg-zero-light text-zero-dark border-zero-DEFAULT";
+            let signStr = "0";
+
+            if (num > 0) {
+                bgClass = "bg-pos-light text-pos-dark border-pos-DEFAULT";
+                signStr = `+${num}`;
+            } else if (num < 0) {
+                bgClass = "bg-neg-light text-neg-dark border-neg-DEFAULT";
+                signStr = `${num}`;
+            }
+
+            const sizeClasses = size === 'sm' ? 'w-8 h-8 text-xs' : size === 'lg' ? 'w-14 h-14 text-xl font-bold' : 'w-11 h-11 text-base font-bold';
+
+            return `
+                <div class="inline-flex items-center justify-center ${sizeClasses} rounded-xl border-2 ${bgClass} shadow-sm font-heading select-none">
+                    ${signStr}
+                </div>
+            `;
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('sekme-aktif'));
+
+            document.getElementById(`module-${tabId}`).classList.remove('hidden');
+            document.getElementById(`tab-${tabId}`).classList.add('sekme-aktif');
+            if (tabId === 'number-line') nlOlcekle();
+
+            // Dynamic teacher note update
+            const notes = {
+                'number-line': "Sayı doğrusunda 0 nötrdür. Pozitif sayılar sağda, negatif sayılar solda yer alır.",
+                'sorting': "Negatif sayılarda rakam büyüdükçe sayı küçülür! Örneğin: -10 sayısı -2 sayısından daha küçüktür.",
+                'between': "İki sayı arasındaki sayıları bulurken verilen uç sayıları dahil etmeyi unutma!",
+                'quiz': "Soruları dikkatli oku, eksi işaretlerine çok dikkat et!"
+            };
+            document.getElementById('teacher-note').innerHTML = notes[tabId] || notes['number-line'];
+        }
+
+        // Trigger confetti celebration
+        function celebrate() {
+            confetti({
+                particleCount: 80,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+        }
+
+        // =========================================================================
+        // MODULE 1: INTERACTIVE NUMBER LINE
+        // =========================================================================
+        let nlTargets = [];
+        let nlCentikler = [];   // çentik değerleri, soldan sağa
+        let nlPlaced = {};
+
+        // SEVİYELER: 1. seviyede sayılar birer birer artar. Sonraki seviyelerde artış miktarı
+        // gizlidir; doğruda yalnız iki sayı görünür, öğrenci aralarındaki farkı parça sayısına
+        // bölerek artışı bulur (örn. -6 ile +9 arasında 5 parça: 15 ÷ 5 = 3).
+        const NL_GIZLI = 'Artış miktarı gizli! İki sayının farkını, aralarındaki parça sayısına bölerek bul.';
+        const NL_SEVIYELER = [
+            { adimlar: [1], aciklama: 'Sayılar birer birer artıp azalıyor.' },
+            { adimlar: [2], aciklama: NL_GIZLI },
+            { adimlar: [3], aciklama: NL_GIZLI },
+            { adimlar: [5], aciklama: NL_GIZLI },
+            { adimlar: [4, 6, 7, 8], kaydir: true, aciklama: NL_GIZLI + ' Bu seviyede 0 doğruda olmayabilir.' },
+        ];
+        let nlSeviye = 0;
+
+        const rastgele = (a, b) => a + Math.floor(Math.random() * (b - a + 1));   // a ile b dahil
+
+        function nlSoruUret() {
+            const sev = NL_SEVIYELER[nlSeviye];
+            if (nlSeviye === 0) {
+                nlCentikler = Array.from({ length: 13 }, (_, k) => k - 6);
+                const set = new Set();
+                while (set.size < 5) set.add(rastgele(-6, 6));
+                nlTargets = [...set];
+                return;
+            }
+            const adim = sev.adimlar[rastgele(0, sev.adimlar.length - 1)];
+            const adet = 7;
+            let bas = -adim * rastgele(1, adet - 2);   // 0 doğrunun içinde kalır
+            if (sev.kaydir) bas += rastgele(1, adim - 1) * (Math.random() < 0.5 ? 1 : -1);
+            nlCentikler = Array.from({ length: adet }, (_, k) => bas + k * adim);
+
+            // Görünen iki sayının arasında en az bir (üst seviyelerde iki) boş çentik kalır;
+            // komşu iki sayı verilse artış bölmeden okunurdu.
+            const enAzAralik = nlSeviye === 1 ? 2 : 3;
+            const i = rastgele(0, adet - 1 - enAzAralik);
+            const j = rastgele(i + enAzAralik, adet - 1);
+            nlTargets = nlCentikler.filter((_, k) => k !== i && k !== j);
+        }
+
+        function nlSeviyeleriCiz() {
+            document.getElementById('nl-seviyeler').innerHTML = NL_SEVIYELER.map((_, s) => `
+                <button onclick="nlSeviyeyeGec(${s})" aria-label="${s + 1}. seviye"
+                    class="w-10 h-10 rounded-xl font-bold font-heading border-2 transition ${s === nlSeviye ? 'bg-indigo-600 text-white border-indigo-700' : 'bg-white text-indigo-700 border-indigo-300 hover:bg-indigo-50'}">${s + 1}</button>
+            `).join('');
+            document.getElementById('nl-seviye-aciklama').innerText = NL_SEVIYELER[nlSeviye].aciklama;
+        }
+
+        function nlSeviyeyeGec(seviye) {
+            nlSeviye = seviye;
+            nlSeviyeleriCiz();
+            resetNumberLine();
+        }
+        // Dokunmatik tahtada sürükle-bırak çalışmaz: kart seçilip kutuya dokunularak da yerleştirilir.
+        let nlSecili = null;
+        let nlGeriBildirimZamani = 0;
+
+        function initNumberLine() {
+            const ticksContainer = document.getElementById('number-line-ticks');
+            const poolContainer = document.getElementById('nl-drag-pool');
+            ticksContainer.innerHTML = '';
+            poolContainer.innerHTML = '';
+            nlPlaced = {};
+            nlSecili = null;
+            document.getElementById('nl-feedback').classList.add('hidden');
+
+            const yazarak = nlSeviye > 0;
+            document.getElementById('nl-havuz-bolumu').classList.toggle('hidden', yazarak);
+            document.getElementById('nl-yaz-bolumu').classList.toggle('hidden', !yazarak);
+            document.getElementById('nl-yonerge').innerText = yazarak
+                ? 'Görünen iki sayıdan yararlanarak boş kutulara gelen sayıları bulun ve yazın.'
+                : 'Sayı kartlarını sürükleyip doğru konuma bırakın ya da önce karta, sonra kutuya dokunun.';
+
+            for (const i of nlCentikler) {
+                const isTarget = nlTargets.includes(i);
+
+                const tickSlot = document.createElement('div');
+                tickSlot.className = "flex flex-col items-center relative";
+
+                let slotContent = '';
+                if (isTarget && yazarak) {
+                    // type="number": telefonda sayı klavyesi açılır ve eksi işareti vardır. inputmode="numeric"
+                    // KONMAZ — iOS'ta eksisiz rakam tuşları açar, negatif sayı yazılamaz.
+                    slotContent = `
+                        <input type="number" autocomplete="off" enterkeyhint="done" placeholder="?" aria-label="Boş kutu"
+                            data-sira="${nlCentikler.indexOf(i)}"
+                            oninput="this.classList.remove('border-rose-500', 'bg-rose-50')"
+                            onkeydown="if (event.key === 'Enter') nlYaziKontrol()"
+                            style="width: var(--nl-kutu); height: var(--nl-kutu);"
+                            class="nl-girdi rounded-xl border-2 border-dashed border-indigo-300 bg-white text-center text-base font-bold text-gray-900 placeholder:text-indigo-300 focus:outline-none focus:border-indigo-500">
+                    `;
+                } else if (isTarget) {
+                    slotContent = `
+                        <div style="width: var(--nl-kutu); height: var(--nl-kutu);" class="rounded-xl border-2 border-dashed border-indigo-300 bg-white flex items-center justify-center transition drop-zone cursor-pointer"
+                             data-val="${i}" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleNLDrop(event, ${i})" onclick="nlKutuyaTikla(this, ${i})">
+                             <span class="text-xs text-indigo-300 font-bold">?</span>
+                        </div>
+                    `;
+                } else {
+                    slotContent = `
+                        <div style="width: var(--nl-kutu); height: var(--nl-kutu);" class="flex items-center justify-center">
+                            ${getNumberBadgeHtml(i, 'sm')}
+                        </div>
+                    `;
+                }
+
+                // Boş kutunun altına sayı yazılmaz (cevabı verirdi); kart doğru yere bırakılınca yazılır.
+                tickSlot.innerHTML = `
+                    ${slotContent}
+                    <div class="w-0.5 h-3 bg-slate-400 my-1"></div>
+                    <span id="nl-etiket-${i}" class="text-sm font-bold ${i === 0 ? 'text-indigo-600 font-black scale-110' : 'text-slate-500'}">${isTarget ? '&nbsp;' : i}</span>
+                `;
+                ticksContainer.appendChild(tickSlot);
+            }
+
+            nlYakinlik = nlVarsayilanYakinlik();
+            nlOlcekle();
+
+            // Yazma modunda kart üretilmez (gizli havuzda bile cevaplar durmasın).
+            if (yazarak) return;
+
+            // Shuffle targets for pool
+            const shuffled = [...nlTargets].sort(() => Math.random() - 0.5);
+            shuffled.forEach(num => {
+                const card = document.createElement('div');
+                card.draggable = true;
+                card.id = `nl-card-${num}`;
+                card.ondragstart = (e) => e.dataTransfer.setData('text/plain', num);
+                card.onclick = () => nlKartSec(num);
+                card.innerHTML = getNumberBadgeHtml(num, 'md');
+                card.className = "cursor-grab active:cursor-grabbing hover:scale-105 transition transform";
+                poolContainer.appendChild(card);
+            });
+        }
+
+        function nlKartSec(num) {
+            nlSecili = (nlSecili === num) ? null : num;
+            document.querySelectorAll('#nl-drag-pool > div').forEach(k => {
+                k.classList.toggle('nl-secili', k.id === `nl-card-${nlSecili}`);
+            });
+        }
+
+        function nlKutuyaTikla(kutu, targetVal) {
+            if (nlSecili === null || nlPlaced[targetVal]) return;
+            nlYerlestir(kutu, targetVal, nlSecili);
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleNLDrop(e, targetVal) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            if (nlPlaced[targetVal]) return;
+            nlYerlestir(e.currentTarget, targetVal, parseInt(e.dataTransfer.getData('text/plain')));
+        }
+
+        function nlYerlestir(kutu, targetVal, draggedVal) {
+            const fb = document.getElementById('nl-feedback');
+            clearTimeout(nlGeriBildirimZamani);
+
+            if (draggedVal === targetVal) {
+                kutu.innerHTML = getNumberBadgeHtml(draggedVal, 'sm');
+                kutu.classList.remove('border-dashed', 'border-indigo-300', 'cursor-pointer');
+                kutu.classList.add('border-emerald-500', 'bg-emerald-50');
+                document.getElementById(`nl-etiket-${targetVal}`).innerText = targetVal;
+
+                // Hide dragged element
+                const card = document.getElementById(`nl-card-${draggedVal}`);
+                if (card) { card.style.visibility = 'hidden'; card.classList.remove('nl-secili'); }
+                nlSecili = null;
+
+                nlPlaced[targetVal] = true;
+
+                if (Object.keys(nlPlaced).length === nlTargets.length) {
+                    nlBitti();
+                } else {
+                    fb.classList.add('hidden');
+                }
+            } else {
+                fb.className = "mt-4 text-center font-bold text-rose-600 text-sm bg-rose-50 p-3 rounded-xl border border-rose-200 block";
+                fb.innerHTML = `<i class='fa-solid fa-circle-xmark'></i> Yanlış konum! ${draggedVal > targetVal ? 'Daha sağda' : 'Daha solda'} olmalı.`;
+                nlGeriBildirimZamani = setTimeout(() => fb.classList.add('hidden'), 2500);
+            }
+        }
+
+        function nlBitti() {
+            const fb = document.getElementById('nl-feedback');
+            const sonSeviye = nlSeviye === NL_SEVIYELER.length - 1;
+            fb.className = "mt-4 text-center font-bold text-emerald-600 text-base bg-emerald-50 p-3 rounded-xl border border-emerald-200 block";
+            fb.innerHTML = "<i class='fa-solid fa-circle-check'></i> Harika! Tüm sayıları doğru yerleştirdiniz! " + (sonSeviye
+                ? "Bütün seviyeleri bitirdiniz; Yenile ile yeni sorular çözebilirsiniz."
+                : `<button onclick="nlSeviyeyeGec(${nlSeviye + 1})" class="ml-2 mt-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl">${nlSeviye + 2}. seviyeye geç <i class="fa-solid fa-arrow-right ml-1"></i></button>`);
+            celebrate();
+        }
+
+        // 2. seviyeden itibaren: kart verilmez (sıralamak cevabı ele verirdi), öğrenci yazar.
+        // Doğru kutu kilitlenir ve altına sayısı yazılır; yanlış kutu kırmızı kalır.
+        function nlYaziKontrol() {
+            const fb = document.getElementById('nl-feedback');
+            clearTimeout(nlGeriBildirimZamani);
+            let bos = 0, yanlis = 0, artiIsaretli = 0;
+
+            document.querySelectorAll('.nl-girdi:not([disabled])').forEach(g => {
+                // Sayı kutusu "+9"u geçersiz sayar ve değeri boş döndürür; boş sanılmasın.
+                if (g.validity.badInput) { artiIsaretli++; g.classList.add('border-rose-500', 'bg-rose-50'); return; }
+                const metin = g.value.trim();
+                if (metin === '') { bos++; return; }
+                const dogru = nlCentikler[Number(g.dataset.sira)];
+                if (/^[+-]?\d+$/.test(metin) && Number(metin) === dogru) {
+                    g.disabled = true;
+                    g.value = dogru > 0 ? '+' + dogru : String(dogru);
+                    g.classList.remove('border-dashed', 'border-indigo-300', 'border-rose-500', 'bg-rose-50');
+                    g.classList.add('border-emerald-500', 'bg-emerald-50', 'text-emerald-700');
+                    document.getElementById(`nl-etiket-${dogru}`).innerText = dogru;
+                    nlPlaced[dogru] = true;
+                } else {
+                    yanlis++;
+                    g.classList.add('border-rose-500', 'bg-rose-50');
+                }
+            });
+
+            if (Object.keys(nlPlaced).length === nlTargets.length) { nlBitti(); return; }
+
+            fb.className = "mt-4 text-center font-bold text-rose-600 text-sm bg-rose-50 p-3 rounded-xl border border-rose-200 block";
+            const yazilan = document.querySelectorAll('.nl-girdi').length - bos;
+            fb.innerHTML = artiIsaretli > 0
+                ? "<i class='fa-solid fa-circle-info'></i> Pozitif sayıları + işareti olmadan yazın (örneğin +9 yerine 9)."
+                : yanlis > 0
+                ? `<i class='fa-solid fa-circle-xmark'></i> ${yanlis} kutu yanlış. Artış miktarını bulmak için görünen iki sayının farkını, aralarındaki parça sayısına böl.`
+                : yazilan > 0
+                ? "<i class='fa-solid fa-circle-info'></i> Yazdıkların doğru! Boş kalan kutuları da doldurun."
+                : "<i class='fa-solid fa-circle-info'></i> Önce boş kutulara sayı yazın.";
+        }
+
+        // YAKINLAŞTIRMA: 1 = doğrunun tamamı kutuya sığar. Kutu boyu çentik aralığından türer.
+        // Varsayılan, kutuyu en az ~34 px yapan orandır: telefonda 7 çentikli seviyeler sığar,
+        // 13 çentikli 1. seviye okunur kalır (kaydırılarak).
+        let nlYakinlik = 1;
+        const NL_CENTIK_EN_AZ = 38;   // bir çentiğe düşen en az genişlik (px)
+
+        function nlAlan() {
+            const kap = document.getElementById('nl-kap');
+            const stil = getComputedStyle(kap);
+            return kap.clientWidth - parseFloat(stil.paddingLeft) - parseFloat(stil.paddingRight);
+        }
+
+        function nlVarsayilanYakinlik() {
+            const alan = nlAlan();
+            return alan > 0 ? Math.max(1, nlCentikler.length * NL_CENTIK_EN_AZ / alan) : 1;
+        }
+
+        function nlEnCokYakinlik() {
+            return Math.max(3, nlVarsayilanYakinlik() * 2);
+        }
+
+        function nlOlcekle() {
+            const alan = nlAlan();
+            if (alan <= 0) return;   // sekme gizliyken ölçülemez; sekme açılınca yeniden çağrılır
+            const genislik = alan * nlYakinlik;
+            const kutu = Math.max(16, Math.min(48, Math.floor(genislik / nlCentikler.length) - 4));
+            const cizgi = document.getElementById('nl-cizgi');
+            cizgi.style.width = Math.round(genislik) + 'px';
+            cizgi.style.setProperty('--nl-kutu', kutu + 'px');
+            document.getElementById('nl-uzaklastir').disabled = nlYakinlik <= 1;
+            document.getElementById('nl-yakinlastir').disabled = nlYakinlik >= nlEnCokYakinlik();
+        }
+
+        function nlYakinlastir(yon) {
+            const kap = document.getElementById('nl-kap');
+            const merkez = (kap.scrollLeft + kap.clientWidth / 2) / kap.scrollWidth;
+            nlYakinlik = Math.min(nlEnCokYakinlik(), Math.max(1, nlYakinlik * (yon > 0 ? 1.5 : 1 / 1.5)));
+            if (nlYakinlik < 1.05) nlYakinlik = 1;
+            nlOlcekle();
+            // Görünen orta nokta yakınlaştırmadan sonra da ortada kalsın.
+            kap.scrollLeft = merkez * kap.scrollWidth - kap.clientWidth / 2;
+        }
+
+        let nlOlcekBekleyen = 0;
+        window.addEventListener('resize', () => {
+            cancelAnimationFrame(nlOlcekBekleyen);
+            nlOlcekBekleyen = requestAnimationFrame(nlOlcekle);
+        });
+
+        function resetNumberLine() {
+            nlSoruUret();
+            initNumberLine();
+        }
+
+        // =========================================================================
+        // MODULE 2: SORTING ACTIVITY (DRAG & DROP)
+        // =========================================================================
+        let currentSortMode = 'asc'; // 'asc' or 'desc'
+        let currentSortNumbers = [];
+        let userSortedOrder = [];
+
+        function initSortingActivity(mode = 'asc') {
+            currentSortMode = mode;
+            document.getElementById('sort-asc-btn').className = mode === 'asc'
+                ? "px-4 py-2 bg-indigo-600 text-white font-semibold rounded-xl text-sm transition shadow-sm"
+                : "px-4 py-2 bg-slate-100 text-slate-700 font-semibold rounded-xl text-sm transition hover:bg-slate-200";
+
+            document.getElementById('sort-desc-btn').className = mode === 'desc'
+                ? "px-4 py-2 bg-indigo-600 text-white font-semibold rounded-xl text-sm transition shadow-sm"
+                : "px-4 py-2 bg-slate-100 text-slate-700 font-semibold rounded-xl text-sm transition hover:bg-slate-200";
+
+            document.getElementById('sort-instruction').innerHTML = mode === 'asc'
+                ? "Sayıları KÜÇÜKTEN BÜYÜĞE doğru sıralayın! <i class='fa-solid fa-arrow-right-long text-indigo-500 ml-1'></i>"
+                : "Sayıları BÜYÜKTEN KÜÇÜĞE doğru sıralayın! <i class='fa-solid fa-arrow-right-long text-indigo-500 ml-1'></i>";
+
+            document.getElementById('sorting-feedback').innerHTML = '';
+
+            // Generate 5 random integers
+            const numbers = new Set();
+            while (numbers.size < 5) {
+                numbers.add(Math.floor(Math.random() * 30) - 15);
+            }
+            currentSortNumbers = Array.from(numbers);
+            userSortedOrder = new Array(5).fill(null);
+
+            renderSortingSlots();
+            renderSortingPool();
+        }
+
+        function renderSortingSlots() {
+            const slotsContainer = document.getElementById('sorting-slots');
+            slotsContainer.innerHTML = '';
+
+            for (let i = 0; i < 5; i++) {
+                const slot = document.createElement('div');
+                slot.className = "w-16 h-16 sm:w-20 sm:h-20 rounded-2xl border-2 border-dashed border-slate-300 bg-white flex flex-col items-center justify-center cursor-pointer transition relative hover:border-indigo-400";
+
+                if (userSortedOrder[i] !== null) {
+                    slot.innerHTML = getNumberBadgeHtml(userSortedOrder[i], 'lg');
+                    slot.onclick = () => removeSortingCard(i);
+                } else {
+                    slot.innerHTML = `<span class="text-xs text-slate-300 font-bold">${i + 1}. Adım</span>`;
+                }
+
+                // Add comparator sign between slots
+                slotsContainer.appendChild(slot);
+                if (i < 4) {
+                    const sign = document.createElement('div');
+                    sign.className = "self-center text-slate-400 font-bold text-lg";
+                    sign.innerHTML = currentSortMode === 'asc' ? '<i class="fa-solid fa-less-than"></i>' : '<i class="fa-solid fa-greater-than"></i>';
+                    slotsContainer.appendChild(sign);
+                }
+            }
+        }
+
+        function renderSortingPool() {
+            const poolContainer = document.getElementById('sorting-pool');
+            poolContainer.innerHTML = '';
+
+            currentSortNumbers.forEach(num => {
+                // If already placed, skip rendering in pool
+                if (userSortedOrder.includes(num)) return;
+
+                const card = document.createElement('div');
+                card.className = "cursor-pointer transform hover:scale-110 transition active:scale-95";
+                card.innerHTML = getNumberBadgeHtml(num, 'lg');
+                card.onclick = () => placeSortingCard(num);
+                poolContainer.appendChild(card);
+            });
+        }
+
+        function placeSortingCard(num) {
+            // Find first empty slot
+            const emptyIdx = userSortedOrder.indexOf(null);
+            if (emptyIdx !== -1) {
+                userSortedOrder[emptyIdx] = num;
+                renderSortingSlots();
+                renderSortingPool();
+            }
+        }
+
+        function removeSortingCard(slotIdx) {
+            userSortedOrder[slotIdx] = null;
+            renderSortingSlots();
+            renderSortingPool();
+        }
+
+        function checkSorting() {
+            const fb = document.getElementById('sorting-feedback');
+            if (userSortedOrder.includes(null)) {
+                fb.className = "text-center font-bold text-amber-600 text-sm bg-amber-50 p-2 rounded-xl border border-amber-200";
+                fb.innerHTML = "<i class='fa-solid fa-triangle-exclamation'></i> Lütfen önce tüm sayıları boş kutulara yerleştirin!";
+                return;
+            }
+
+            const correct = [...currentSortNumbers].sort((a, b) => currentSortMode === 'asc' ? a - b : b - a);
+            const isCorrect = userSortedOrder.every((val, idx) => val === correct[idx]);
+
+            if (isCorrect) {
+                fb.className = "text-center font-bold text-emerald-600 text-base bg-emerald-50 p-3 rounded-xl border border-emerald-200";
+                fb.innerHTML = "<i class='fa-solid fa-circle-check'></i> TEBRİKLER! Tüm sayıları mükemmel şekilde sıraladınız!";
+                celebrate();
+            } else {
+                fb.className = "text-center font-bold text-rose-600 text-base bg-rose-50 p-3 rounded-xl border border-rose-200";
+                fb.innerHTML = `<i class='fa-solid fa-circle-xmark'></i> Maalesef doğru sıralama değil. Doğru Cevap: ${correct.map(n => n > 0 ? '+'+n : n).join(' , ')}`;
+            }
+        }
+
+        // =========================================================================
+        // MODULE 3: ARADA KALDIKLARINI SOR (DEDICATED MODULE)
+        // =========================================================================
+        let currentBetweenData = {};
+
+        function araSeridiCiz(min, max) {
+            const visualLine = document.getElementById('between-visual-line');
+            visualLine.innerHTML = '';
+            for (let i = min - 1; i <= max + 1; i++) {
+                const isBoundary = (i === min || i === max);
+                const isBetween = (i > min && i < max);
+
+                let badgeStyle = "opacity-40 bg-slate-800 text-slate-400 border-slate-700";
+                if (isBoundary) badgeStyle = "ring-2 ring-amber-400 bg-amber-500/20 text-amber-300 border-amber-400 scale-105";
+                if (isBetween) badgeStyle = "bg-indigo-600 text-white border-indigo-400 font-bold";
+
+                visualLine.innerHTML += `
+                    <div class="px-2.5 py-1 rounded-lg border text-xs ${badgeStyle} flex flex-col items-center">
+                        <span>${i > 0 ? '+'+i : i}</span>
+                        ${isBoundary ? '<span class="text-[9px] text-amber-300">Sınır</span>' : ''}
+                    </div>
+                `;
+            }
+        }
+
+        function generateBetweenQuestion() {
+            const fb = document.getElementById('between-feedback');
+            fb.classList.add('hidden');
+            document.getElementById('between-ipucu').classList.add('hidden');
+
+            // 3 Question types:
+            // Type 0: "X ile Y arasında hangi tam sayılar vardır?" (Multiple Choice)
+            // Type 1: "X ile Y arasında kaç tane tam sayı vardır?" (Count)
+            // Type 2: "Hangi tam sayı X'ten büyük, Y'den küçüktür?" (Specific single integer)
+
+            const qType = Math.floor(Math.random() * 3);
+            let a = Math.floor(Math.random() * 12) - 8; // e.g. -8 to 3
+            let b = a + Math.floor(Math.random() * 4) + 3; // ensure range of 3-6 units
+
+            const min = Math.min(a, b);
+            const max = Math.max(a, b);
+
+            // Get integers strictly between min and max
+            const betweenNums = [];
+            for (let i = min + 1; i < max; i++) {
+                betweenNums.push(i);
+            }
+
+            currentBetweenData = { min, max, betweenNums, qType };
+
+            // Şerit sorunun KENDİ sınırlarıyla çizilir (3. tür hedef±1'i sorar).
+            if (qType === 2) {
+                const target = betweenNums[Math.floor(betweenNums.length / 2)];
+                araSeridiCiz(target - 1, target + 1);
+            } else {
+                araSeridiCiz(min, max);
+            }
+
+            const qText = document.getElementById('between-question-text');
+            const optionsContainer = document.getElementById('between-options-container');
+            optionsContainer.innerHTML = '';
+
+            if (qType === 0) {
+                // "Hangi tam sayılar vardır?"
+                qText.innerHTML = `<span class="text-amber-400 font-extrabold">${min > 0 ? '+'+min : min}</span> ile <span class="text-amber-400 font-extrabold">${max > 0 ? '+'+max : max}</span> arasında hangi tam sayılar yer alır?`;
+
+                const correctAnswerStr = betweenNums.map(n => n > 0 ? '+'+n : n).join(', ');
+
+                // Generate distractors
+                const options = [correctAnswerStr];
+
+                // Distractor 1: Includes boundaries
+                const d1 = [min, ...betweenNums, max].map(n => n > 0 ? '+'+n : n).join(', ');
+                // Distractor 2: Shifted
+                const d2 = betweenNums.map(n => (n+1) > 0 ? '+' + (n+1) : (n+1)).join(', ');
+                // Distractor 3: Reverse/Random
+                const d3 = betweenNums.map(n => (n-1) > 0 ? '+' + (n-1) : (n-1)).join(', ');
+
+                options.push(d1, d2, d3);
+                const uniqueOptions = Array.from(new Set(options)).sort(() => Math.random() - 0.5);
+
+                uniqueOptions.forEach(opt => {
+                    const btn = document.createElement('button');
+                    btn.className = "p-4 bg-white/10 hover:bg-white/20 border border-white/15 rounded-2xl text-left font-bold text-sm sm:text-base transition transform active:scale-95 text-indigo-100";
+                    btn.innerHTML = `<i class="fa-regular fa-circle mr-2 text-indigo-400"></i> ${opt}`;
+                    btn.onclick = () => checkBetweenAnswer(opt === correctAnswerStr, correctAnswerStr);
+                    optionsContainer.appendChild(btn);
+                });
+
+            } else if (qType === 1) {
+                // "Kaç tane tam sayı vardır?"
+                qText.innerHTML = `<span class="text-amber-400 font-extrabold">${min > 0 ? '+'+min : min}</span> ile <span class="text-amber-400 font-extrabold">${max > 0 ? '+'+max : max}</span> arasında <span class="underline decoration-indigo-400">kaç tane</span> tam sayı vardır?`;
+
+                const correctCount = betweenNums.length;
+                const options = [correctCount, correctCount + 1, Math.max(0, correctCount - 1), correctCount + 2];
+                const uniqueOptions = Array.from(new Set(options)).sort(() => Math.random() - 0.5);
+
+                uniqueOptions.forEach(opt => {
+                    const btn = document.createElement('button');
+                    btn.className = "p-4 bg-white/10 hover:bg-white/20 border border-white/15 rounded-2xl text-center font-bold text-lg transition transform active:scale-95 text-indigo-100";
+                    btn.innerHTML = `${opt} Tane`;
+                    btn.onclick = () => checkBetweenAnswer(opt === correctCount, `${correctCount} Tane`);
+                    optionsContainer.appendChild(btn);
+                });
+
+            } else {
+                // "Hangi tam sayı X'ten büyük, Y'den küçüktür?" (single target between min and max)
+                const target = betweenNums[Math.floor(betweenNums.length / 2)];
+                const low = target - 1;
+                const high = target + 1;
+
+                qText.innerHTML = `<span class="text-amber-400 font-extrabold">${low > 0 ? '+'+low : low}</span>'den büyük, <span class="text-amber-400 font-extrabold">${high > 0 ? '+'+high : high}</span>'den küçük olan tam sayı hangisidir?`;
+
+                const options = [target, target + 2, target - 2, low];
+                const uniqueOptions = Array.from(new Set(options)).sort(() => Math.random() - 0.5);
+
+                uniqueOptions.forEach(opt => {
+                    const btn = document.createElement('button');
+                    btn.className = "p-4 bg-white/10 hover:bg-white/20 border border-white/15 rounded-2xl text-center font-bold text-lg transition transform active:scale-95 text-indigo-100";
+                    btn.innerHTML = opt > 0 ? `+${opt}` : `${opt}`;
+                    btn.onclick = () => checkBetweenAnswer(opt === target, target > 0 ? `+${target}` : `${target}`);
+                    optionsContainer.appendChild(btn);
+                });
+            }
+        }
+
+        function checkBetweenAnswer(isCorrect, correctStr) {
+            const fb = document.getElementById('between-feedback');
+            fb.classList.remove('hidden');
+            document.getElementById('between-ipucu').classList.remove('hidden');
+
+            if (isCorrect) {
+                fb.className = "mt-4 p-3 rounded-xl text-center font-bold text-sm bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+                fb.innerHTML = `<i class="fa-solid fa-circle-check"></i> Mükemmel! Doğru Cevap: ${correctStr}`;
+                celebrate();
+            } else {
+                fb.className = "mt-4 p-3 rounded-xl text-center font-bold text-sm bg-rose-500/20 text-rose-300 border border-rose-500/30";
+                fb.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> Dikkatli ol! Doğru Cevap: ${correctStr}`;
+            }
+        }
+
+        // =========================================================================
+        // MODULE 4: QUIZ / CHALLENGE MODE
+        // =========================================================================
+        const quizBank = [
+            {
+                q: "Aşağıdaki sıralamalardan hangisi DOĞRUDUR?",
+                opts: ["-8 < -5 < 0 < +3", "-5 < -8 < 0 < +3", "+3 < 0 < -5 < -8", "-8 < 0 < -5 < +3"],
+                ans: 0,
+                exp: "Negatif sayılarda sıfırdan uzaklaştıkça değer küçülür. Dolayısıyla -8, -5'ten küçüktür."
+            },
+            {
+                q: "-12 ile +2 arasında kaç tane TAM SAYI vardır?",
+                opts: ["13 Tane", "14 Tane", "12 Tane", "15 Tane"],
+                ans: 0, // -11 to +1 -> 11 negatives + 0 + 1 positive = 13 numbers
+                exp: "-11'den +1'e kadar olan sayılar: 11 negatif + sıfır + 1 pozitif = 13 tane."
+            },
+            {
+                q: "En büyük negatif tam sayı ile en küçük pozitif tam sayının toplamı kaçtır?",
+                opts: ["0", "-1", "+1", "-2"],
+                ans: 0, // (-1) + (+1) = 0
+                exp: "En büyük negatif tam sayı -1'dir. En küçük pozitif tam sayı +1'dir. (-1) + (+1) = 0."
+            },
+            {
+                q: "-7'den büyük en küçük tam sayı hangisidir?",
+                opts: ["-6", "-8", "0", "-5"],
+                ans: 0,
+                exp: "-7'den büyük sayılar sağa doğru gider. İlk gelen en küçük tam sayı -6'dır."
+            },
+            {
+                q: "Aşağıdaki ifadelerden hangisi YANLIŞTIR?",
+                opts: ["Negatif sayılar büyüdükçe sıfıra yaklaşır", "-100 sayısı -1 sayısından daha büyüktür", "Sıfır tam sayısı ne pozitif ne negatiftir", "Her pozitif tam sayı tüm negatif sayılardan büyüktür"],
+                ans: 1,
+                exp: "-100 sayısı -1 sayısından çok daha küçüktür çünkü sıfıra daha uzaktır!"
+            }
+        ];
+
+        let currentQuizIdx = 0;
+        let quizScore = 0;
+
+        function renderQuizQuestion() {
+            const item = quizBank[currentQuizIdx];
+            document.getElementById('quiz-progress-text').innerText = `Soru ${currentQuizIdx + 1} / ${quizBank.length}`;
+            document.getElementById('quiz-question').innerText = item.q;
+
+            const optsContainer = document.getElementById('quiz-options');
+            optsContainer.innerHTML = '';
+
+            document.getElementById('quiz-feedback').classList.add('hidden');
+            document.getElementById('quiz-next-btn').classList.add('hidden');
+
+            item.opts.forEach((optText, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full p-4 rounded-xl border border-slate-200 bg-white hover:bg-indigo-50 hover:border-indigo-300 text-left font-semibold text-slate-700 transition flex items-center justify-between group";
+                btn.innerHTML = `
+                    <span>${String.fromCharCode(65 + idx)}) ${optText}</span>
+                    <i class="fa-regular fa-circle text-slate-300 group-hover:text-indigo-500"></i>
+                `;
+                btn.onclick = () => answerQuiz(idx);
+                optsContainer.appendChild(btn);
+            });
+        }
+
+        function answerQuiz(selectedIdx) {
+            const item = quizBank[currentQuizIdx];
+            const optsContainer = document.getElementById('quiz-options');
+            const buttons = optsContainer.querySelectorAll('button');
+
+            // Disable all buttons
+            buttons.forEach(b => b.disabled = true);
+
+            const fb = document.getElementById('quiz-feedback');
+            fb.classList.remove('hidden');
+
+            if (selectedIdx === item.ans) {
+                buttons[selectedIdx].className = "w-full p-4 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-emerald-900 font-bold text-left flex items-center justify-between";
+                buttons[selectedIdx].querySelector('i').className = "fa-solid fa-circle-check text-emerald-600 text-lg";
+
+                quizScore += 20;
+                document.getElementById('quiz-score').innerText = quizScore;
+
+                fb.className = "p-3 rounded-xl font-bold text-sm bg-emerald-100 text-emerald-800 border border-emerald-200 mb-4";
+                fb.innerHTML = `<i class="fa-solid fa-circle-check"></i> Harika! Doğru Cevap. ${item.exp}`;
+                celebrate();
+            } else {
+                buttons[selectedIdx].className = "w-full p-4 rounded-xl border-2 border-rose-500 bg-rose-50 text-rose-900 font-bold text-left flex items-center justify-between";
+                buttons[selectedIdx].querySelector('i').className = "fa-solid fa-circle-xmark text-rose-600 text-lg";
+
+                buttons[item.ans].className = "w-full p-4 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-emerald-900 font-bold text-left flex items-center justify-between";
+
+                fb.className = "p-3 rounded-xl font-bold text-sm bg-rose-100 text-rose-800 border border-rose-200 mb-4";
+                fb.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> Yanlış Cevap. Açıklama: ${item.exp}`;
+            }
+
+            document.getElementById('quiz-next-btn').classList.remove('hidden');
+        }
+
+        function nextQuizQuestion() {
+            currentQuizIdx++;
+            if (currentQuizIdx < quizBank.length) {
+                renderQuizQuestion();
+            } else {
+                // Quiz Finish
+                const quizCard = document.querySelector('#module-quiz .max-w-2xl');
+                quizCard.innerHTML = `
+                    <div class="text-center py-8">
+                        <div class="text-6xl mb-4">🏆</div>
+                        <h3 class="text-2xl font-bold font-heading text-slate-800 mb-2">Tebrikler! Yarışmayı Tamamladınız!</h3>
+                        <p class="text-slate-600 font-medium mb-6">Toplam Puanınız: <span class="text-3xl font-extrabold text-indigo-600">${quizScore} / 100</span></p>
+                        <button onclick="location.reload()" class="px-6 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition">
+                            <i class="fa-solid fa-rotate-right mr-1"></i> Yeniden Başla
+                        </button>
+                    </div>
+                `;
+                celebrate();
+            }
+        }
+
+        // =========================================================================
+        // ON INITIAL LOAD
+        // =========================================================================
+        window.onload = function() {
+            nlSeviyeyeGec(0);
+            initSortingActivity('asc');
+            generateBetweenQuestion();
+            renderQuizQuestion();
+        };
+    </script>
+</body>
+</html>
