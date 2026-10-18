@@ -288,6 +288,9 @@
             overflow: hidden;
             user-select: none;
             cursor: grab;
+            /* Yatay sürükleme ve iki parmakla yakınlaştırma sayfaya değil doğruya gitsin;
+               dikey kaydırma sayfada kalır. */
+            touch-action: pan-y;
         }
 
         .infinite-line-viewport:active {
@@ -723,22 +726,62 @@
 
         function setupPanZoom(viewportId, stateObj, renderCallback) {
             const viewport = document.getElementById(viewportId);
-            let isDragging = false;
+            // Fare olayları dokunmatik ekranda gelmez: kaydırma ve iki parmakla yakınlaştırma
+            // işaretçi (pointer) olaylarıyla yazılır; fare, parmak ve kalem aynı yoldan geçer.
+            const parmaklar = new Map();   // pointerId -> clientX
             let startX = 0;
+            let kistirma = null;           // iki parmak: { mesafe, birim, deger }
 
-            viewport.addEventListener('mousedown', (e) => {
+            function kaydirmayiBaslat() {
+                const [x] = parmaklar.values();
+                startX = x - stateObj.offsetX;
+            }
+
+            function kistirmayiBaslat() {
+                const [a, b] = parmaklar.values();
+                const sol = viewport.getBoundingClientRect().left;
+                const orta = (a + b) / 2 - sol;
+                kistirma = {
+                    mesafe: Math.max(1, Math.abs(a - b)),
+                    birim: stateObj.unitPixels,
+                    deger: (orta - stateObj.offsetX) / stateObj.unitPixels,   // parmakların ortasındaki sayı
+                };
+            }
+
+            viewport.addEventListener('pointerdown', (e) => {
                 if(e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
-                isDragging = true;
-                startX = e.clientX - stateObj.offsetX;
+                if (e.pointerType === 'mouse' && e.button !== 0) return;
+                parmaklar.set(e.pointerId, e.clientX);
+                if (parmaklar.size === 1) kaydirmayiBaslat();
+                else if (parmaklar.size === 2) kistirmayiBaslat();
             });
 
-            window.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
-                stateObj.offsetX = e.clientX - startX;
+            window.addEventListener('pointermove', (e) => {
+                if (!parmaklar.has(e.pointerId)) return;
+                parmaklar.set(e.pointerId, e.clientX);
+                if (parmaklar.size === 1) {
+                    stateObj.offsetX = e.clientX - startX;
+                } else if (kistirma) {
+                    // Parmakların ortasındaki sayı yakınlaştırırken yerinde kalır.
+                    const [a, b] = parmaklar.values();
+                    const sol = viewport.getBoundingClientRect().left;
+                    const orta = (a + b) / 2 - sol;
+                    stateObj.unitPixels = Math.max(80, Math.min(600, kistirma.birim * Math.abs(a - b) / kistirma.mesafe));
+                    stateObj.offsetX = orta - kistirma.deger * stateObj.unitPixels;
+                } else {
+                    return;
+                }
                 renderCallback();
             });
 
-            window.addEventListener('mouseup', () => { isDragging = false; });
+            function birak(e) {
+                if (!parmaklar.delete(e.pointerId)) return;
+                kistirma = null;
+                // İki parmaktan biri kalkınca kalan parmakla kaydırma sıçramadan sürer.
+                if (parmaklar.size === 1) kaydirmayiBaslat();
+            }
+            window.addEventListener('pointerup', birak);
+            window.addEventListener('pointercancel', birak);
 
             viewport.addEventListener('wheel', (e) => {
                 e.preventDefault();
